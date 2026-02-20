@@ -1,4 +1,3 @@
-// JavaScript source code
 import { supabase } from "../lib/supabase"
 import { useState } from "react"
 
@@ -14,18 +13,22 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
 
   const handleGoogleLogin = async () => {
     setLoading(true)
-
     await supabase.auth.signInWithOAuth({
       provider: "google",
     })
-
     setLoading(false)
   }
 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <h2 style={{ marginBottom: 20 }}>Iniciar sesión</h2>
+        {/* Botón de cerrar (X) */}
+        <button onClick={onClose} style={closeButtonStyle}>
+          &times;
+        </button>
+
+        <h2 style={titleStyle}>Iniciar sesión</h2>
+        <p style={subtitleStyle}>Usa tu cuenta para continuar</p>
 
         <button
           onClick={handleGoogleLogin}
@@ -34,16 +37,12 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
         >
           {loading ? "Cargando..." : "Continuar con Google"}
         </button>
-
-        <button onClick={onClose} style={closeStyle}>
-          Cerrar
-        </button>
       </div>
     </div>
   )
 }
 
-/* --- estilos simples inline --- */
+/* --- Estilos actualizados --- */
 
 const overlayStyle: React.CSSProperties = {
   position: "fixed",
@@ -51,7 +50,7 @@ const overlayStyle: React.CSSProperties = {
   left: 0,
   width: "100vw",
   height: "100vh",
-  backgroundColor: "rgba(0,0,0,0.5)",
+  backgroundColor: "rgba(0,0,0,0.6)", // Fondo un poco más oscuro
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
@@ -59,24 +58,48 @@ const overlayStyle: React.CSSProperties = {
 }
 
 const modalStyle: React.CSSProperties = {
+  position: "relative", // Necesario para posicionar la X
   background: "white",
-  padding: "2rem",
-  borderRadius: "12px",
-  width: "320px",
+  padding: "2.5rem 2rem 2rem 2rem",
+  borderRadius: "16px",
+  width: "340px",
   textAlign: "center",
+  boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+}
+
+const titleStyle: React.CSSProperties = {
+  marginBottom: "8px",
+  color: "#1a1a1a", // Texto casi negro para mejor contraste
+  fontSize: "1.5rem",
+}
+
+const subtitleStyle: React.CSSProperties = {
+  marginBottom: "24px",
+  color: "#4a4a4a", // Gris oscuro
+  fontSize: "0.9rem",
 }
 
 const googleButtonStyle: React.CSSProperties = {
   width: "100%",
-  padding: "10px",
-  marginBottom: "1rem",
-  borderRadius: "6px",
+  padding: "12px",
+  borderRadius: "8px",
   cursor: "pointer",
-  border: "1px solid #ddd",
+  border: "1px solid #ccc",
+  backgroundColor: "#fff",
+  fontWeight: "600",
+  color: "#222", // Texto del botón más oscuro
+  transition: "background 0.2s",
 }
 
-const closeStyle: React.CSSProperties = {
-  background: "transparent",
+const closeButtonStyle: React.CSSProperties = {
+  position: "absolute",
+  top: "12px",
+  right: "16px",
+  background: "none",
   border: "none",
+  fontSize: "24px",
+  lineHeight: "1",
   cursor: "pointer",
+  color: "#333", // Color de la X
+  padding: "5px",
 }
