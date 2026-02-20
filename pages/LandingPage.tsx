@@ -2,7 +2,7 @@ import React from 'react';
 import { useState } from "react"
 import { Link } from 'react-router-dom';
 import { Logo } from '../constants';
-import ModalAuth from "./pages/ModalAuth"
+import ModalAuth from "./ModalAuth.tsx"
 
 const LandingPage: React.FC = () => {
 
