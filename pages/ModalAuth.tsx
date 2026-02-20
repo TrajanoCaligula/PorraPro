@@ -17,7 +17,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
       provider: "google",
       options: {
             redirectTo: `${window.location.origin}/dashboard`,
-      },
+      }
     })
     setLoading(false)
   }
