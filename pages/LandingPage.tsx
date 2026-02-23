@@ -94,7 +94,6 @@ const LandingPage: React.FC = () => {
         </p>
       </footer>
 
-      {/* 🔥 MODAL AUTH AQUÍ */}
       <ModalAuth
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
