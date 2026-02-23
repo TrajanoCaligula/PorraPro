@@ -2,11 +2,39 @@ import React from 'react';
 import { useState } from "react"
 import { Link } from 'react-router-dom';
 import { Logo } from '../constants';
+import { supabase } from "../lib/supabase"
 import ModalAuth from "./ModalAuth.tsx"
 
 const LandingPage: React.FC = () => {
 
   const [isAuthOpen, setIsAuthOpen] = useState(false)
+
+  const navigate = useNavigate()
+
+    useEffect(() => {
+      const checkUser = async () => {
+        const { data } = await supabase.auth.getUser()
+
+        if (data.user) {
+          navigate("/dashboard")
+        }
+      }
+
+      checkUser()
+
+      const { data: listener } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (session?.user) {
+            navigate("/dashboard")
+          }
+        }
+      )
+
+      return () => {
+        listener.subscription.unsubscribe()
+      }
+
+    }, [])
 
   return (
     <div className="flex flex-col">
