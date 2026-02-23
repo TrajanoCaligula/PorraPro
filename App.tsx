@@ -15,11 +15,48 @@ const App: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/dashboard" element={<WithNavigation><Dashboard /></WithNavigation>} />
-          <Route path="/partits" element={<WithNavigation><MatchesPage /></WithNavigation>} />
-          <Route path="/ranking" element={<WithNavigation><RankingPage /></WithNavigation>} />
-          <Route path="/crear-porra" element={<CreatePoolPage />} />
-          <Route path="/pagar" element={<CheckoutPage />} />
+
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <WithNavigation><Dashboard /></WithNavigation>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/partits" 
+            element={
+              <ProtectedRoute>
+                <WithNavigation><MatchesPage /></WithNavigation>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/ranking" 
+            element={
+              <ProtectedRoute>
+                <WithNavigation><RankingPage /></WithNavigation>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/crear-porra" 
+            element={
+              <ProtectedRoute>
+                <WithNavigation><MatchesPage /></WithNavigation>
+              </ProtectedRoute>
+            }
+          <Route 
+            path="/pagar" 
+            element={
+              <ProtectedRoute>
+                <WithNavigation><MatchesPage /></WithNavigation>
+              </ProtectedRoute>
+            }
         </Routes>
       </div>
     </Router>
