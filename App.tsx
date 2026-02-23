@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./pages/ProtectedRoute";
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import MatchesPage from './pages/MatchesPage';
