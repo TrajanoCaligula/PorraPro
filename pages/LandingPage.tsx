@@ -3,7 +3,7 @@ import { useState } from "react"
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '../constants';
 import { supabase } from "../lib/supabase"
-import ModalAuth from "./ModalAuth.tsx"
+import ModalAuth from "./ModalAuth"
 
 const LandingPage: React.FC = () => {
 
