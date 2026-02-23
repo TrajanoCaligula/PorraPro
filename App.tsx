@@ -49,14 +49,16 @@ const App: React.FC = () => {
               <ProtectedRoute>
                 <WithNavigation><MatchesPage /></WithNavigation>
               </ProtectedRoute>
-            }
+            } 
+          />
           <Route 
             path="/pagar" 
             element={
               <ProtectedRoute>
                 <WithNavigation><MatchesPage /></WithNavigation>
               </ProtectedRoute>
-            }
+            } 
+          />
         </Routes>
       </div>
     </Router>
