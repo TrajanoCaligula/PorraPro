@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState } from "react"
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Logo } from '../constants';
 import { supabase } from "../lib/supabase"
 import ModalAuth from "./ModalAuth.tsx"
@@ -9,7 +9,7 @@ const LandingPage: React.FC = () => {
 
   const [isAuthOpen, setIsAuthOpen] = useState(false)
 
-  const navigate = Link()
+  const navigate = useNavigate()
 
     useEffect(() => {
       const checkUser = async () => {
