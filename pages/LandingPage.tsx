@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useState } from "react"
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from '../constants';
 import { supabase } from "../lib/supabase"
 import ModalAuth from "./ModalAuth"
