@@ -16,7 +16,7 @@ const LandingPage: React.FC = () => {
         const { data } = await supabase.auth.getUser()
 
         if (data.user) {
-          navigate("/dashboard")
+          Link("/dashboard")
         }
       }
 
@@ -25,7 +25,7 @@ const LandingPage: React.FC = () => {
       const { data: listener } = supabase.auth.onAuthStateChange(
         (_event, session) => {
           if (session?.user) {
-            navigate("/dashboard")
+            Link("/dashboard")
           }
         }
       )
