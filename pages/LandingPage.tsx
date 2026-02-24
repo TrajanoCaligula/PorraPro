@@ -1,16 +1,10 @@
-import React, { useEffect } from 'react';
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from 'react'; // Combinados en una línea
+import { useNavigate } from "react-router-dom";
 import { Logo } from '../constants';
-import { supabase } from "../lib/supabase"
-import ModalAuth from "./ModalAuth"
+import { supabase } from "../lib/supabase";
+import ModalAuth from "./ModalAuth";
 
 const LandingPage: React.FC = () => {
-
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
-  const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
-
-  const LandingPage: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -18,7 +12,7 @@ const LandingPage: React.FC = () => {
     const { data } = await supabase.auth.getUser();
 
     if (!data.user) {
-      // 1. GUARDAMOS EN LOCALSTORAGE antes de abrir el modal/login
+      // Guardamos la intención en localStorage para que sobreviva al login de Google
       localStorage.setItem("postLoginRedirect", "/crear-porra");
       setIsAuthOpen(true);
       return;
@@ -30,13 +24,10 @@ const LandingPage: React.FC = () => {
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-
       if (user) {
-        // 2. COMPROBAMOS SI HAY UNA RUTA GUARDADA
         const pendingRedirect = localStorage.getItem("postLoginRedirect");
-        
         if (pendingRedirect) {
-          localStorage.removeItem("postLoginRedirect"); // Limpiamos
+          localStorage.removeItem("postLoginRedirect");
           navigate(pendingRedirect);
         } else {
           navigate("/dashboard");
@@ -46,20 +37,17 @@ const LandingPage: React.FC = () => {
 
     checkUser();
 
-    // El listener de onAuthStateChange también debe manejar esto
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (session?.user) {
-          const pendingRedirect = localStorage.getItem("postLoginRedirect");
-          if (pendingRedirect) {
-            localStorage.removeItem("postLoginRedirect");
-            navigate(pendingRedirect);
-          } else {
-            navigate("/dashboard");
-          }
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const pendingRedirect = localStorage.getItem("postLoginRedirect");
+        if (pendingRedirect) {
+          localStorage.removeItem("postLoginRedirect");
+          navigate(pendingRedirect);
+        } else {
+          navigate("/dashboard");
         }
       }
-    );
+    });
 
     return () => {
       listener.subscription.unsubscribe();
@@ -72,8 +60,6 @@ const LandingPage: React.FC = () => {
       <header className="container mx-auto px-6 py-8 flex justify-between items-center">
         <Logo />
         <div className="flex items-center gap-4">
-
-          {/* BOTÓN LOGIN */}
           <button
             onClick={() => setIsAuthOpen(true)}
             className="hidden sm:block text-brand-text-dim font-bold hover:text-white transition-colors"
@@ -81,12 +67,12 @@ const LandingPage: React.FC = () => {
             Iniciar Sesión
           </button>
 
-         <button
-          onClick={handleCreatePorra}
-          className="bg-brand-green hover:bg-brand-green-dark text-brand-blue-deep px-6 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-brand-green/20"
-        >
-          Crea Porra
-        </button>
+          <button
+            onClick={handleCreatePorra}
+            className="bg-brand-green hover:bg-brand-green-dark text-brand-blue-deep px-6 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-brand-green/20"
+          >
+            Crea Porra
+          </button>
         </div>
       </header>
 
@@ -129,9 +115,9 @@ const LandingPage: React.FC = () => {
             <h3 className="display-font text-xl mb-6">Ranking en tiempo real</h3>
             <div className="space-y-3">
               {[
-                { name: 'Marc G.', pts: 312, pos: 1, up: true },
-                { name: 'Laura P.', pts: 287, pos: 2, up: false },
-                { name: 'Jordi T.', pts: 271, pos: 3, up: true },
+                { name: 'Marc G.', pts: 312, pos: 1 },
+                { name: 'Laura P.', pts: 287, pos: 2 },
+                { name: 'Jordi T.', pts: 271, pos: 3 },
               ].map((p, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 bg-brand-surface rounded-xl border border-brand-border">
                   <span className="mono-font font-bold w-4 text-center">{p.pos}</span>
@@ -156,7 +142,6 @@ const LandingPage: React.FC = () => {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
       />
-
     </div>
   );
 };
