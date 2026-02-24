@@ -10,19 +10,26 @@ const Dashboard: React.FC = () => {
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-10">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-brand-green text-sm animate-pulse">●</span>
-            <span className="text-brand-text-dim font-bold uppercase tracking-widest text-xs">EN CURSO — Fase de Grupos</span>
+      <header class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-brand-green text-sm animate-pulse">●</span>
+              <span class="text-brand-text-dim font-bold uppercase tracking-widest text-xs">EN CURSO — Fase de Grupos</span>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-black">Mundial Oficina 2026</h1>
+            <p class="text-brand-text-dim">18 de 20 miembros ya han enviado sus pronósticos</p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black">Mundial Oficina 2026</h1>
-          <p className="text-brand-text-dim">18 de 20 miembros ya han enviado sus pronósticos</p>
-        </div>
-        <button className="bg-brand-green/10 border border-brand-green/20 text-brand-green px-6 py-3 rounded-xl font-bold hover:bg-brand-green hover:text-brand-blue-deep transition-all flex items-center gap-2">
-          <span>👥</span> Invitar amigos
-        </button>
-      </header>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button class="bg-red-500/10 border border-red-500/20 text-red-500 px-6 py-3 rounded-xl font-bold hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2">
+              <span>✕</span> Cerrar sesión
+            </button>
+    
+            <button class="bg-brand-green/10 border border-brand-green/20 text-brand-green px-6 py-3 rounded-xl font-bold hover:bg-brand-green hover:text-brand-blue-deep transition-all flex items-center justify-center gap-2">
+              <span>👥</span> Invitar amigos
+            </button>
+          </div>
+        </header>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

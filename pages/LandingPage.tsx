@@ -25,10 +25,11 @@ const LandingPage: React.FC = () => {
     }
     
     useEffect(() => {
+
       const checkUser = async () => {
         const { data } = await supabase.auth.getUser()
 
-        if (session?.user) {
+        if (data.user) {
           if (redirectAfterLogin) {
             navigate(redirectAfterLogin)
             setRedirectAfterLogin(null)
@@ -43,7 +44,12 @@ const LandingPage: React.FC = () => {
       const { data: listener } = supabase.auth.onAuthStateChange(
         (_event, session) => {
           if (session?.user) {
-            navigate("/dashboard")
+            if (redirectAfterLogin) {
+              navigate(redirectAfterLogin)
+              setRedirectAfterLogin(null)
+            } else {
+              navigate("/dashboard")
+            }
           }
         }
       )
