@@ -50,7 +50,7 @@ const CreatePoolPage: React.FC = () => {
   };
 
   const copyToClipboard = () => {
-    const link = `porrapro.app/p/${poolCode}`;
+    const link = `porrapro.vercel.app/p/${poolCode}`;
     navigator.clipboard.writeText(link);
     alert("¡Enlace copiado!");
   };
@@ -163,7 +163,7 @@ const CreatePoolPage: React.FC = () => {
               </div>
               
               <div className="bg-brand-blue-deep border border-brand-blue-light p-4 rounded-xl flex items-center justify-between">
-                <span className="mono-font text-xs truncate mr-4 text-brand-green">porrapro.app/p/{poolCode}</span>
+                <span className="mono-font text-xs truncate mr-4 text-brand-green">porrapro.vercel.app/p/{poolCode}</span>
                 <button 
                   onClick={copyToClipboard}
                   className="bg-brand-green text-brand-blue-deep px-4 py-2 rounded-lg font-bold text-xs whitespace-nowrap"
@@ -174,7 +174,7 @@ const CreatePoolPage: React.FC = () => {
 
               <div className="flex flex-col gap-3">
                 <a 
-                  href={`https://wa.me/?text=¡Únete a mi porra ${poolName} del Mundial 2026! Entra aquí: porrapro.app/p/${poolCode}`}
+                  href={`https://wa.me/?text=¡Únete a mi porra ${poolName} del Mundial 2026! Entra aquí: porrapro.vercel.app/p/${poolCode}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full bg-[#25D366] text-white py-4 rounded-xl font-black flex items-center justify-center gap-3"
