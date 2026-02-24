@@ -51,3 +51,5 @@ const handleJoin = async () => {
     setStatus(`Error: ${err.message}`);
   }
 };
+
+export default InvitePage;
