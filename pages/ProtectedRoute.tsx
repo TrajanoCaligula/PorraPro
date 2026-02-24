@@ -11,13 +11,24 @@ export default function ProtectedRoute({ children }: Props) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const getSession = async () => {
       const { data } = await supabase.auth.getUser();
       setIsAuthenticated(!!data.user);
       setLoading(false);
     };
 
-    checkUser();
+    getSession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setIsAuthenticated(!!session?.user);
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   if (loading) return null;
