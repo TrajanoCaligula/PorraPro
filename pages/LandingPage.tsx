@@ -22,37 +22,41 @@ const LandingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const pendingRedirect = localStorage.getItem("postLoginRedirect");
-        if (pendingRedirect) {
-          localStorage.removeItem("postLoginRedirect");
-          navigate(pendingRedirect);
-        } else {
-          navigate("/dashboard");
+      const handleAuthRedirect = async (session: any) => {
+        if (session?.user) {
+          const pendingRedirect = localStorage.getItem("postLoginRedirect");
+      
+          if (pendingRedirect) {
+            // Importante: Limpiamos ANTES de navegar
+            localStorage.removeItem("postLoginRedirect");
+        
+            // Damos un respiro al sistema para que el router esté listo
+            setTimeout(() => {
+              navigate(pendingRedirect, { replace: true });
+            }, 150);
+          } else {
+            // Si no hay nada pendiente, comportamiento normal
+            navigate("/dashboard", { replace: true });
+          }
         }
-      }
-    };
+      };
 
-    checkUser();
+      // 1. Comprobación inmediata al cargar (por si ya volvió de Google)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) handleAuthRedirect(session);
+      });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const pendingRedirect = localStorage.getItem("postLoginRedirect");
-        if (pendingRedirect) {
-          localStorage.removeItem("postLoginRedirect");
-          navigate(pendingRedirect);
-        } else {
-          navigate("/dashboard");
+      // 2. Escuchar cambios de estado (el evento SIGNED_IN es clave aquí)
+      const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === "SIGNED_IN" && session) {
+          handleAuthRedirect(session);
         }
-      }
-    });
+      });
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, [navigate]);
+      return () => {
+        listener.subscription.unsubscribe();
+      };
+    }, [navigate]);
 
   return (
     <div className="flex flex-col">
