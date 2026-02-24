@@ -8,15 +8,33 @@ import ModalAuth from "./ModalAuth"
 const LandingPage: React.FC = () => {
 
   const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
 
   const navigate = useNavigate()
 
+    const handleCreatePorra = async () => {
+      const { data } = await supabase.auth.getUser()
+
+      if (!data.user) {
+        setRedirectAfterLogin("/crear-porra")
+        setIsAuthOpen(true)
+        return
+      }
+
+      navigate("/crear-porra")
+    }
+    
     useEffect(() => {
       const checkUser = async () => {
         const { data } = await supabase.auth.getUser()
 
-        if (data.user) {
-          navigate("/dashboard")
+        if (session?.user) {
+          if (redirectAfterLogin) {
+            navigate(redirectAfterLogin)
+            setRedirectAfterLogin(null)
+          } else {
+            navigate("/dashboard")
+          }
         }
       }
 
@@ -34,7 +52,7 @@ const LandingPage: React.FC = () => {
         listener.subscription.unsubscribe()
       }
 
-    }, [])
+    }, [redirectAfterLogin])
 
   return (
     <div className="flex flex-col">
@@ -51,12 +69,12 @@ const LandingPage: React.FC = () => {
             Iniciar Sesión
           </button>
 
-          <Link 
-            to="/crear-porra" 
-            className="bg-brand-green hover:bg-brand-green-dark text-brand-blue-deep px-6 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-brand-green/20"
-          >
-            Crea Porra
-          </Link>
+         <button
+          onClick={handleCreatePorra}
+          className="bg-brand-green hover:bg-brand-green-dark text-brand-blue-deep px-6 py-2.5 rounded-full font-bold transition-all shadow-lg shadow-brand-green/20"
+        >
+          Crea Porra
+        </button>
         </div>
       </header>
 
@@ -76,13 +94,13 @@ const LandingPage: React.FC = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link 
-              to="/crear-porra" 
+            <button
+              onClick={handleCreatePorra}
               className="bg-brand-green hover:bg-brand-green-dark text-brand-blue-deep px-8 py-4 rounded-xl font-black text-lg transition-all text-center flex items-center justify-center gap-2 group"
             >
               Crea tu porra gratis 
               <span className="group-hover:translate-x-1 transition-transform">→</span>
-            </Link>
+            </button>
 
             <a 
               href="#como-funciona" 
