@@ -1,78 +1,115 @@
-import { useEffect, useState } from "react";
+Ôªøimport { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 const InvitePage = () => {
-  const { code } = useParams(); // Captura el cÛdigo de la URL
+  const { code } = useParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState("Procesando invitaciÛn...");
+  const [status, setStatus] = useState("Validando invitaci√≥n...");
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
+    // Definimos la funci√≥n DENTRO del useEffect para que tenga acceso a code y navigate
     const handleJoin = async () => {
-      // 1. Verificar si hay sesiÛn de Auth
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        // Si no est· logueado, guardamos el cÛdigo y mandamos al login
-        localStorage.setItem("pendingPoolJoin", code || "");
-        setStatus("Redirigiendo al login...");
-        navigate("/", { state: { openAuth: true } }); 
-        return;
-      }
-
       try {
-        setStatus("Sincronizando perfil...");
+        const { data: { user } } = await supabase.auth.getUser();
 
-        // 2. ESTRATEGIA UPSERT: Asegura que el usuario existe en tu tabla p˙blica "Users"
-        // Esto evita el error de "Usuario no encontrado" si el trigger tarda
+        if (!user) {
+          localStorage.setItem("pendingPoolJoin", code || "");
+          setStatus("Casi listo. Identif√≠cate para entrar...");
+          setTimeout(() => navigate("/", { state: { openAuth: true } }), 1500);
+          return;
+        }
+
+        setStatus("Sincronizando tu perfil...");
+        
+        // 1. Asegurar usuario en tabla p√∫blica
         const { error: userError } = await supabase
           .from("Users")
           .upsert({
-            "idUser": user.id, // Tu PK es UUID seg˙n tu SQL anterior
+            "idUser": user.id,
             nickname: user.user_metadata.full_name || user.email?.split('@')[0] || "Jugador",
             email: user.email,
             avatar_url: user.user_metadata.avatar_url,
           }, { onConflict: 'idUser' });
 
-        if (userError) throw new Error("Error al sincronizar perfil");
+        if (userError) throw new Error("No pudimos conectar con tu perfil");
 
-        // 3. Obtener el idPool a partir del cÛdigo corto
+        // 2. Buscar la porra
         const { data: pool, error: poolError } = await supabase
           .from("Pools")
           .select("idPool, name")
           .eq("code", code)
           .single();
 
-        if (poolError || !pool) throw new Error("La porra no existe.");
+        if (poolError || !pool) throw new Error("Esta porra no existe o el c√≥digo es incorrecto");
 
-        // 4. Intentar insertar la participaciÛn
+        // 3. Unir al usuario
         const { error: joinError } = await supabase
           .from("PoolParticipations")
-          .insert({
-            idPool: pool.idPool,
-            idUser: user.id // Usamos el ID del usuario autenticado
-          });
+          .insert({ idPool: pool.idPool, idUser: user.id });
 
-        // Error '23505' = ya eres miembro, no pasa nada
+        // Ignorar si ya es miembro (error 23505)
         if (joinError && joinError.code !== '23505') throw joinError;
 
-        setStatus(`°Te has unido a ${pool.name}!`);
-        setTimeout(() => navigate("/dashboard"), 1500);
+        setStatus(`¬°Bienvenido a ${pool.name}!`);
+        setTimeout(() => navigate("/dashboard"), 2000);
 
       } catch (error: any) {
-        console.error(error);
-        setStatus(`Error: ${error.message}`);
+        console.error("Error en InvitePage:", error);
+        setIsError(true);
+        setStatus(error.message || "Error al unirse a la porra");
       }
     };
 
-    if (code) handleJoin();
+    if (code) {
+      handleJoin();
+    } else {
+      setIsError(true);
+      setStatus("C√≥digo de invitaci√≥n no v√°lido");
+    }
   }, [code, navigate]);
 
   return (
-    <div className="min-h-screen bg-brand-blue-deep flex items-center justify-center text-white">
-      <div className="text-center space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-brand-green mx-auto"></div>
-        <p className="text-xl font-bold">{status}</p>
+    <div className="min-h-screen bg-[#0a0f1e] flex items-center justify-center p-4 font-sans relative overflow-hidden">
+      {/* Glow de fondo */}
+      <div className="absolute inset-0 bg-gradient-to-b from-brand-blue-deep/20 to-black pointer-events-none"></div>
+      
+      <div className="relative bg-[#161d2f] border border-white/10 p-8 rounded-3xl shadow-2xl max-w-md w-full text-center z-10">
+        <div className="mb-6 flex justify-center">
+          {isError ? (
+            <div className="bg-red-500/20 p-4 rounded-full text-4xl">‚ö†Ô∏è</div>
+          ) : status.includes("Bienvenido") ? (
+            <div className="bg-green-500/20 p-4 rounded-full animate-bounce text-4xl">‚öΩ</div>
+          ) : (
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-green-400 border-r-2 border-transparent"></div>
+          )}
+        </div>
+
+        <h2 className={`text-2xl font-bold mb-2 ${isError ? 'text-red-400' : 'text-white'}`}>
+          {isError ? "¬°Ups!" : "Unirse a Porra"}
+        </h2>
+        
+        <p className="text-gray-400 text-lg leading-relaxed min-h-[3rem]">
+          {status}
+        </p>
+
+        {!isError && !status.includes("Bienvenido") && (
+          <div className="mt-8 flex justify-center gap-2">
+            <div className="h-1.5 w-1.5 bg-green-400 rounded-full animate-ping"></div>
+            <div className="h-1.5 w-1.5 bg-green-400 rounded-full animate-ping [animation-delay:0.2s]"></div>
+            <div className="h-1.5 w-1.5 bg-green-400 rounded-full animate-ping [animation-delay:0.4s]"></div>
+          </div>
+        )}
+
+        {isError && (
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="mt-6 w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10"
+          >
+            Volver al Dashboard
+          </button>
+        )}
       </div>
     </div>
   );
