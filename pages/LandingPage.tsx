@@ -10,55 +10,61 @@ const LandingPage: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null)
 
-  const navigate = useNavigate()
+  const LandingPage: React.FC = () => {
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const navigate = useNavigate();
 
-    const handleCreatePorra = async () => {
-      const { data } = await supabase.auth.getUser()
+  const handleCreatePorra = async () => {
+    const { data } = await supabase.auth.getUser();
 
-      if (!data.user) {
-        setRedirectAfterLogin("/crear-porra")
-        setIsAuthOpen(true)
-        return
-      }
-
-      navigate("/crear-porra")
+    if (!data.user) {
+      // 1. GUARDAMOS EN LOCALSTORAGE antes de abrir el modal/login
+      localStorage.setItem("postLoginRedirect", "/crear-porra");
+      setIsAuthOpen(true);
+      return;
     }
-    
-    useEffect(() => {
 
-      const checkUser = async () => {
-        const { data } = await supabase.auth.getUser()
+    navigate("/crear-porra");
+  };
 
-        if (data.user) {
-          if (redirectAfterLogin) {
-            navigate(redirectAfterLogin)
-            setRedirectAfterLogin(null)
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // 2. COMPROBAMOS SI HAY UNA RUTA GUARDADA
+        const pendingRedirect = localStorage.getItem("postLoginRedirect");
+        
+        if (pendingRedirect) {
+          localStorage.removeItem("postLoginRedirect"); // Limpiamos
+          navigate(pendingRedirect);
+        } else {
+          navigate("/dashboard");
+        }
+      }
+    };
+
+    checkUser();
+
+    // El listener de onAuthStateChange también debe manejar esto
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          const pendingRedirect = localStorage.getItem("postLoginRedirect");
+          if (pendingRedirect) {
+            localStorage.removeItem("postLoginRedirect");
+            navigate(pendingRedirect);
           } else {
-            navigate("/dashboard")
+            navigate("/dashboard");
           }
         }
       }
+    );
 
-      checkUser()
-
-      const { data: listener } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          if (session?.user) {
-            if (redirectAfterLogin) {
-              navigate(redirectAfterLogin)
-              setRedirectAfterLogin(null)
-            } else {
-              navigate("/dashboard")
-            }
-          }
-        }
-      )
-
-      return () => {
-        listener.subscription.unsubscribe()
-      }
-
-    }, [redirectAfterLogin])
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   return (
     <div className="flex flex-col">

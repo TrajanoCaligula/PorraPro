@@ -76,7 +76,7 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
     { label: 'Inicio', path: '/dashboard', icon: '🏠' },
     { label: 'Partidos', path: '/partits', icon: '⚽' },
     { label: 'Ranking', path: '/ranking', icon: '🏆' },
-    { label: 'Ajustes', path: '/dashboard', icon: '⚙️' },
+    { label: 'Ajustes', path: '/settings', icon: '⚙️' },
   ];
 
   return (
