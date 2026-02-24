@@ -15,44 +15,57 @@ const CreatePoolPage: React.FC = () => {
   const [poolCode, setPoolCode] = useState(''); // El código generado por Supabase
 
   const handleCreatePool = async () => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
+      setLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Debes estar logueado");
 
-      if (!user) throw new Error("Debes estar logueado");
-
-      // Insertar en la tabla 'porras' (ajusta el nombre si es distinto)
-      const { data, error } = await supabase
-          .from('Pools') // Nombre exacto de tu tabla
+        // 1. CREAR LA PORRA
+        const { data: pool, error: poolError } = await supabase
+          .from('Pools')
           .insert([
             { 
               name: poolName, 
               competition: competition,
               is_private: isPrivate,
-              idAdmin: user.id, // Tu tabla usa idAdmin
+              idAdmin: user.id, // El administrador es el usuario actual
               score_system: 'equilibrado'
             }
           ])
           .select()
           .single();
 
-        if (error) throw error;
+        if (poolError) throw poolError;
 
-        // Ahora usamos .code que es la columna nueva
-        setPoolCode(data.code); 
+        // 2. UNIR AL ADMIN AUTOMÁTICAMENTE (Nuevo paso)
+        // Usamos el idPool que acabamos de recibir del primer insert
+        const { error: joinError } = await supabase
+          .from('PoolParticipations')
+          .insert([
+            { 
+              idPool: pool.idPool, 
+              idUser: user.id,
+              score: 0 
+            }
+          ]);
+
+        if (joinError) throw joinError;
+
+        // 3. TODO OK: Guardamos el código para mostrarlo en el Paso 3
+        setPoolCode(pool.code);
         setStep(3);
-    } catch (error) {
-      console.error("Error creando porra:", error);
-      alert("No se pudo crear la porra. Inténtalo de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      } catch (error: any) {
+        console.error("Error completo:", error);
+        alert("Error al crear la porra: " + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const copyToClipboard = () => {
     const link = `porrapro.vercel.app/p/${poolCode}`;
     navigator.clipboard.writeText(link);
-    alert("¡Enlace copiado!");
   };
 
   return (

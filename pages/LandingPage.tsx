@@ -40,6 +40,14 @@ const LandingPage: React.FC = () => {
           }
         }
       };
+      // Dentro del useEffect de manejo de Auth
+        const pendingPoolCode = localStorage.getItem("pendingPoolJoin");
+
+        if (pendingPoolCode) {
+          localStorage.removeItem("pendingPoolJoin");
+          // Redirigimos a la página de invitación para que procese el insert
+          navigate(`/p/${pendingPoolCode}`); 
+        }
 
       // 1. Comprobación inmediata al cargar (por si ya volvió de Google)
       supabase.auth.getSession().then(({ data: { session } }) => {

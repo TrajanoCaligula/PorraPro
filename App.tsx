@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import MatchesPage from './pages/MatchesPage';
 import RankingPage from './pages/RankingPage';
 import CreatePoolPage from './pages/CreatePoolPage';
+import InvitePage from './pages/InvitePage';
 import CheckoutPage from './pages/CheckoutPage';
 import { Logo } from './constants';
 
@@ -50,6 +51,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <WithNavigation><CreatePoolPage /></WithNavigation>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/p/:code"
+            element={
+              <ProtectedRoute>
+                <WithNavigation><InvitePage /></WithNavigation>
               </ProtectedRoute>
             } 
           />
