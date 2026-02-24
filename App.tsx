@@ -49,7 +49,7 @@ const App: React.FC = () => {
             path="/crear-porra" 
             element={
               <ProtectedRoute>
-                <WithNavigation><MatchesPage /></WithNavigation>
+                <WithNavigation><CreatePoolPage /></WithNavigation>
               </ProtectedRoute>
             } 
           />
@@ -57,7 +57,7 @@ const App: React.FC = () => {
             path="/pagar" 
             element={
               <ProtectedRoute>
-                <WithNavigation><MatchesPage /></WithNavigation>
+                <WithNavigation><CheckoutPage /></WithNavigation>
               </ProtectedRoute>
             } 
           />
