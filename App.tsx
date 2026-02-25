@@ -149,17 +149,21 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
           ))}
         </nav>
         
-        {/* Footer Sidebar: Logout + Perfil */}
-        <div className="mt-auto pt-6 border-t border-brand-blue-light">
-          {/* BOTÓN CERRAR SESIÓN */}
+        {/* Footer Sidebar */}
+        <div className="mt-auto pt-6">
+          
+          {/* BOTÓN CERRAR SESIÓN (Solo texto) */}
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-2 mb-4 px-2 text-[11px] font-bold text-brand-text-dim hover:text-red-400 transition-colors uppercase tracking-widest group"
+            className="px-2 text-[11px] font-bold text-brand-text-dim hover:text-red-400 transition-colors uppercase tracking-widest"
           >
-            <span className="text-sm group-hover:rotate-12 transition-transform">🚪</span>
             Cerrar sesi&oacute;n
           </button>
 
+          {/* LA BARRA HORIZONTAL */}
+          <div className="border-t border-brand-blue-light mt-4 mb-6"></div>
+
+          {/* INFO DE PERFIL */}
           <div className="flex items-center gap-3">
             {userData?.avatar_url ? (
               <img 
