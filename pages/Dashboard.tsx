@@ -7,33 +7,36 @@ const Dashboard: React.FC = () => {
   const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
   const me = PLAYERS.find(p => p.isMe);
 
-  const MisPorrasComponent = () => {
-  // Aquí defines los datos
-      const porras = [
-        {
-          id: 1,
-          nombre_porra: "Liga Santander",
-          total_participantes: 20,
-          posicion: 3,
-          // ... resto de datos
-        },
-        {
-          id: 2,
-          nombre_porra: "Champions League",
-          total_participantes: 50,
-          posicion: 12,
-          // ... resto de datos
-        }
-      ];
-
-      return (
-        <div className="flex flex-col gap-8">
-           {porras.map((porra) => (
-             // Aquí va el código HTML/Tailwind que te pasé antes
-           ))}
-        </div>
-      );
-    };
+  const MisCompeticiones = () => {
+  // Datos de ejemplo (sustituir por datos de tu API/DB)
+  const porras = [
+    {
+      id: 1,
+      nombre_porra: "Liga Santander",
+      siglas: "LS",
+      total_participantes: 20,
+      posicion: 3,
+      tendencia: 2,
+      puntos: 150,
+      max_puntos_posibles: 200,
+      aciertos: 23,
+      total_partidos: 48,
+      porcentaje_acierto: 48
+    },
+    {
+      id: 2,
+      nombre_porra: "Champions League",
+      siglas: "CL",
+      total_participantes: 100,
+      posicion: 15,
+      tendencia: -5,
+      puntos: 80,
+      max_puntos_posibles: 120,
+      aciertos: 10,
+      total_partidos: 24,
+      porcentaje_acierto: 41
+    }
+  ];
 
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-10">
