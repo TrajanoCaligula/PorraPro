@@ -92,7 +92,9 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-brand-blue-mid border-r border-brand-blue-light p-6 sticky top-0 h-screen">
-        <Logo className="mb-12" />
+          <Link to="/dashboard" className="transition-transform hover:scale-105 active:scale-95 inline-block">
+            <Logo className="mb-12" />
+          </Link>
         <nav className="flex flex-col gap-2 flex-grow">
           {navItems.map(item => (
             <Link 
