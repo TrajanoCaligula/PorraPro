@@ -68,7 +68,7 @@ const Dashboard = () => {
             <span className="text-brand-green text-sm animate-pulse">●</span>
             <span className="text-brand-text-dim font-bold uppercase tracking-widest text-xs">Sesión activa: {me?.name}</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black italic uppercase">Mi Dashboard</h1>
+          <h1 className="text-4xl md:text-5xl font-black italic uppercase">Resumen</h1>
           <p className="text-brand-text-dim font-medium">Gestiona tus pronósticos y revisa tus estadísticas por competición.</p>
         </div>
 
