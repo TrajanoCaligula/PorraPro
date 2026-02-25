@@ -68,7 +68,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
 
         <div style={contentStyle}>
           <h2 style={titleStyle}>Bienvenido de nuevo</h2>
-          <p style={subtitleStyle}>Inicia sesión para acceder a todas las funciones</p>
+          <p style={subtitleStyle}>Inicia sesi&oacute;n para acceder a todas las funciones</p>
 
           <button
             onClick={handleGoogleLogin}
@@ -90,9 +90,9 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
               </>
             )}
           </button>
-          
+  
           <p style={footerTextStyle}>
-            Al continuar, aceptas nuestros términos y condiciones
+            Al continuar, aceptas nuestros t&eacute;rminos y condiciones
           </p>
         </div>
       </div>

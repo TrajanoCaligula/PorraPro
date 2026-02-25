@@ -20,11 +20,7 @@ const Dashboard: React.FC = () => {
             <p class="text-brand-text-dim">18 de 20 miembros ya han enviado sus pronósticos</p>
           </div>
 
-          <div class="flex flex-col sm:flex-row gap-3">
-            <button class="bg-red-500/10 border border-red-500/20 text-red-500 px-6 py-3 rounded-xl font-bold hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2">
-              <span>✕</span> Cerrar sesión
-            </button>
-    
+          <div class="flex flex-col sm:flex-row gap-3">   
             <button class="bg-brand-green/10 border border-brand-green/20 text-brand-green px-6 py-3 rounded-xl font-bold hover:bg-brand-green hover:text-brand-blue-deep transition-all flex items-center justify-center gap-2">
               <span>👥</span> Invitar amigos
             </button>
