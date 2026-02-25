@@ -28,27 +28,23 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
   }
 
   return (
-    <div 
-      style={overlayStyle} 
-      onClick={onClose} // Cierra al hacer clic fuera
-    >
-      <div 
-        style={modalStyle} 
-        onClick={(e) => e.stopPropagation()} // Evita cerrar al hacer clic dentro
-      >
-        {/* Botón de cerrar */}
-        <button onClick={onClose} style={closeButtonStyle} aria-label="Cerrar">
-          &times;
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+        {/* Botón X de cerrar mejorado */}
+        <button onClick={onClose} style={closeButtonStyle}>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M15 5L5 15M5 5l10 10" />
+          </svg>
         </button>
 
         <div style={contentStyle}>
-          <h2 style={titleStyle}>¡Bienvenido de nuevo!</h2>
-          <p style={subtitleStyle}>Inicia sesión para acceder a todas las funciones.</p>
+          <h2 style={titleStyle}>Bienvenido de nuevo</h2>
+          <p style={subtitleStyle}>Inicia sesion para acceder a todas las funciones</p>
 
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8f9fa")}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9fafb")}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
             style={googleButtonStyle}
           >
@@ -59,7 +55,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
                 <img 
                   src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
                   alt="Google" 
-                  style={{ width: '18px', height: '18px' }} 
+                  style={{ width: '20px', height: '20px' }} 
                 />
                 <span style={{ marginLeft: '12px' }}>Continuar con Google</span>
               </>
@@ -67,7 +63,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
           </button>
           
           <p style={footerTextStyle}>
-            Al continuar, aceptas nuestros términos y condiciones.
+            Al continuar, aceptas nuestros terminos y condiciones
           </p>
         </div>
       </div>
@@ -75,7 +71,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
   )
 }
 
-/* --- Estilos unificados y mejorados --- */
+/* --- Estilos unificados (Corregidos) --- */
 
 const overlayStyle: React.CSSProperties = {
   position: "fixed",
@@ -83,26 +79,24 @@ const overlayStyle: React.CSSProperties = {
   left: 0,
   width: "100%",
   height: "100%",
-  backgroundColor: "rgba(0, 0, 0, 0.4)", // Fondo más suave
-  backdropFilter: "blur(5px)", // Efecto de desenfoque moderno
+  backgroundColor: "rgba(0, 0, 0, 0.4)",
+  backdropFilter: "blur(4px)",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
   zIndex: 9999,
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
 }
 
 const modalStyle: React.CSSProperties = {
   position: "relative",
   background: "#ffffff",
-  padding: "40px 32px",
-  borderRadius: "20px",
-  width: "100%",
-  maxWidth: "380px",
+  padding: "48px 32px 32px 32px",
+  borderRadius: "24px",
+  width: "90%",
+  maxWidth: "400px",
   textAlign: "center",
-  boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
-  border: "1px solid rgba(0,0,0,0.05)",
-  animation: "modalFadeIn 0.3s ease-out",
+  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)", // Sombra más suave
 }
 
 const contentStyle: React.CSSProperties = {
@@ -112,17 +106,16 @@ const contentStyle: React.CSSProperties = {
 }
 
 const titleStyle: React.CSSProperties = {
-  margin: "0 0 10px 0",
+  margin: "0 0 8px 0",
   color: "#111827",
   fontSize: "24px",
   fontWeight: "700",
-  letterSpacing: "-0.5px",
 }
 
 const subtitleStyle: React.CSSProperties = {
   margin: "0 0 32px 0",
-  color: "#6B7280",
-  fontSize: "15px",
+  color: "#4b5563",
+  fontSize: "16px",
   lineHeight: "1.5",
 }
 
@@ -131,38 +124,35 @@ const googleButtonStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   width: "100%",
-  padding: "14px",
-  borderRadius: "12px",
+  padding: "16px",
+  borderRadius: "14px",
   cursor: "pointer",
-  border: "1px solid #E5E7EB",
+  border: "1px solid #e5e7eb",
   backgroundColor: "#ffffff",
   fontWeight: "600",
   fontSize: "16px",
   color: "#374151",
-  transition: "all 0.2s ease",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+  transition: "background-color 0.2s",
 }
 
 const closeButtonStyle: React.CSSProperties = {
   position: "absolute",
-  top: "16px",
-  right: "16px",
-  background: "#F3F4F6",
+  top: "20px",
+  right: "20px",
+  background: "#f3f4f6",
   border: "none",
-  fontSize: "20px",
-  width: "32px",
-  height: "32px",
+  width: "36px",
+  height: "36px",
   borderRadius: "50%",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  color: "#9CA3AF",
-  transition: "color 0.2s",
+  color: "#6b7280",
 }
 
 const footerTextStyle: React.CSSProperties = {
   marginTop: "24px",
-  fontSize: "12px",
-  color: "#9CA3AF",
+  fontSize: "13px",
+  color: "#9ca3af",
 }
