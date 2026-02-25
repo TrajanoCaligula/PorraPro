@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { supabase } from "./lib/supabase"; // Asegúrate de que la ruta sea correcta
 
 import ProtectedRoute from "./pages/ProtectedRoute";
 import LandingPage from './pages/LandingPage';
@@ -78,9 +78,43 @@ const App: React.FC = () => {
 
 const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const [isPaid, setIsPaid] = useState(false);
+  const [userData, setUserData] = useState<{ name: string; avatar_url: string } | null>(null);
 
-  // Bottom Nav for mobile, Sidebar for desktop
+  useEffect(() => {
+    // 1. Cargar datos iniciales del localStorage
+    const saved = localStorage.getItem('user_profile');
+    if (saved) setUserData(JSON.parse(saved));
+
+    // 2. Escuchar cambios de autenticación (Crucial para el retorno de Google)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        const profile = {
+          name: session.user.user_metadata.full_name || session.user.email || 'Usuario',
+          avatar_url: session.user.user_metadata.avatar_url || ''
+        };
+        localStorage.setItem('user_profile', JSON.stringify(profile));
+        setUserData(profile);
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('user_profile');
+        setUserData(null);
+      }
+    });
+
+    // 3. Escuchar el evento 'storage' por si se actualiza desde ModalAuth
+    const handleStorageChange = () => {
+      const updated = localStorage.getItem('user_profile');
+      if (updated) setUserData(JSON.parse(updated));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const navItems = [
     { label: 'Inicio', path: '/dashboard', icon: '🏠' },
     { label: 'Partidos', path: '/partits', icon: '⚽' },
@@ -92,9 +126,9 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-brand-blue-mid border-r border-brand-blue-light p-6 sticky top-0 h-screen">
-
-            <Logo className="mb-12" />
-
+        <Link to="/dashboard" className="transition-transform hover:scale-105 active:scale-95 inline-block">
+          <Logo className="mb-12" />
+        </Link>
         <nav className="flex flex-col gap-2 flex-grow">
           {navItems.map(item => (
             <Link 
@@ -111,13 +145,25 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
             </Link>
           ))}
         </nav>
+        
+        {/* Perfil de usuario dinámico */}
         <div className="mt-auto pt-6 border-t border-brand-blue-light">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-brand-green flex items-center justify-center font-bold text-brand-blue-deep">
-              TU
-            </div>
-            <div>
-              <p className="font-bold text-white">Tu Nombre</p>
+            {userData?.avatar_url ? (
+              <img 
+                src={userData.avatar_url} 
+                alt="Avatar" 
+                className="w-10 h-10 rounded-full object-cover border-2 border-brand-green" 
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-brand-green flex items-center justify-center font-bold text-brand-blue-deep uppercase">
+                {userData?.name?.substring(0, 2) || 'TU'}
+              </div>
+            )}
+            <div className="overflow-hidden">
+              <p className="font-bold text-white truncate">
+                {userData?.name || 'Cargando...'}
+              </p>
               <p className="text-xs text-brand-green font-mono">3º de 20</p>
             </div>
           </div>
