@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { supabase } from "./lib/supabase"; // Asegúrate de que la ruta sea correcta
+import { supabase } from "./lib/supabase"; 
 
 import ProtectedRoute from "./pages/ProtectedRoute";
 import LandingPage from './pages/LandingPage';
@@ -81,11 +81,9 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const [userData, setUserData] = useState<{ name: string; avatar_url: string } | null>(null);
 
   useEffect(() => {
-    // 1. Cargar datos iniciales del localStorage
     const saved = localStorage.getItem('user_profile');
     if (saved) setUserData(JSON.parse(saved));
 
-    // 2. Escuchar cambios de autenticación (Crucial para el retorno de Google)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
         const profile = {
@@ -102,7 +100,6 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
       }
     });
 
-    // 3. Escuchar el evento 'storage' por si se actualiza desde ModalAuth
     const handleStorageChange = () => {
       const updated = localStorage.getItem('user_profile');
       if (updated) setUserData(JSON.parse(updated));
@@ -115,83 +112,10 @@ const WithNavigation: React.FC<{ children: React.ReactNode }> = ({ children }) =
     };
   }, []);
 
-  const navItems = [
-    { label: 'Inicio', path: '/dashboard', icon: '🏠' },
-    { label: 'Partidos', path: '/partits', icon: '⚽' },
-    { label: 'Ranking', path: '/ranking', icon: '🏆' },
-    { label: 'Ajustes', path: '/settings', icon: '⚙️' },
-  ];
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('user_profile');
+    window.location.href = "/"; // Redirección total para limpiar estados
+  };
 
-  return (
-    <div className="flex flex-col md:flex-row min-h-screen">
-      {/* Sidebar Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-brand-blue-mid border-r border-brand-blue-light p-6 sticky top-0 h-screen">
-        <Link to="/dashboard" className="transition-transform hover:scale-105 active:scale-95 inline-block">
-          <Logo className="mb-12" />
-        </Link>
-        <nav className="flex flex-col gap-2 flex-grow">
-          {navItems.map(item => (
-            <Link 
-              key={item.path} 
-              to={item.path} 
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                location.pathname === item.path 
-                  ? 'bg-brand-green/10 text-brand-green border border-brand-green/20' 
-                  : 'text-brand-text-dim hover:bg-brand-blue-light hover:text-white'
-              }`}
-            >
-              <span className="text-xl">{item.icon}</span>
-              <span className="font-semibold">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        
-        {/* Perfil de usuario dinámico */}
-        <div className="mt-auto pt-6 border-t border-brand-blue-light">
-          <div className="flex items-center gap-3">
-            {userData?.avatar_url ? (
-              <img 
-                src={userData.avatar_url} 
-                alt="Avatar" 
-                className="w-10 h-10 rounded-full object-cover border-2 border-brand-green" 
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-brand-green flex items-center justify-center font-bold text-brand-blue-deep uppercase">
-                {userData?.name?.substring(0, 2) || 'TU'}
-              </div>
-            )}
-            <div className="overflow-hidden">
-              <p className="font-bold text-white truncate">
-                {userData?.name || 'Cargando...'}
-              </p>
-              <p className="text-xs text-brand-green font-mono">3º de 20</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-grow bg-brand-blue-deep pb-24 md:pb-0 overflow-y-auto">
-        {children}
-      </main>
-
-      {/* Bottom Nav Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-blue-mid border-t border-brand-blue-light px-6 py-3 flex justify-between items-center z-50 backdrop-blur-lg bg-opacity-90">
-        {navItems.map(item => (
-          <Link 
-            key={item.path} 
-            to={item.path} 
-            className={`flex flex-col items-center gap-1 transition-all ${
-              location.pathname === item.path ? 'text-brand-green' : 'text-brand-text-dim'
-            }`}
-          >
-            <span className="text-xl">{item.icon}</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">{item.label}</span>
-          </Link>
-        ))}
-      </nav>
-    </div>
-  );
-};
-
-export default App;
+  const navItems =
