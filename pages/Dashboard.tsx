@@ -82,34 +82,70 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Mapeo de las porras */}
+      ¡Tienes toda la razón! Mil disculpas. Al generar el bloque de código anterior, el formato se rompió y aparecieron espacios o caracteres extraños que harían que React diera error al intentar compilarlo.
+
+Aquí tienes el código limpio, corregido y listo para copiar:
+
+JavaScript
+import React from 'react';
+
+const MisCompeticiones = () => {
+  // Datos de ejemplo (sustituir por datos de tu API/DB)
+  const porras = [
+    {
+      id: 1,
+      nombre_porra: "Liga Santander",
+      siglas: "LS",
+      total_participantes: 20,
+      posicion: 3,
+      tendencia: 2,
+      puntos: 150,
+      max_puntos_posibles: 200,
+      aciertos: 23,
+      total_partidos: 48,
+      porcentaje_acierto: 48
+    },
+    {
+      id: 2,
+      nombre_porra: "Champions League",
+      siglas: "CL",
+      total_participantes: 100,
+      posicion: 15,
+      tendencia: -5,
+      puntos: 80,
+      max_puntos_posibles: 120,
+      aciertos: 10,
+      total_partidos: 24,
+      porcentaje_acierto: 41
+    }
+  ];
+
+  return (
+    <div className="flex flex-col gap-10 p-4 bg-brand-blue-dark">
       {porras?.map((porra, index) => (
-        <div key={porra.id || index} className="mb-12">
-          {/* Título de la Porra */}
-          <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="h-2 w-2 bg-brand-green rounded-full shadow-[0_0_10px_rgba(0,255,0,0.5)]"></div>
-            <h3 className="text-white font-bold text-lg uppercase tracking-tight">
-              {porra.nombre_porra}
-            </h3>
+        <div key={porra.id || index} className="w-full">
+          {/* Título de la Competición */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-6 bg-brand-green rounded-full"></div>
+            <h3 className="text-white font-bold text-lg uppercase">{porra.nombre_porra}</h3>
           </div>
-  
+
+          {/* Grid de 4 Cuadros */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-    
-            {/* CUADRO 1: Info General */}
+            
+            {/* 1. Info Porra */}
             <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl relative overflow-hidden group">
               <div className="absolute -right-4 -bottom-2 text-6xl opacity-5 font-black mono-font group-hover:rotate-12 transition-transform select-none">
-                {porra.siglas || "PR"}
+                {porra.siglas}
               </div>
               <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Competición</p>
               <p className="text-xl lg:text-2xl font-black text-white truncate">{porra.nombre_porra}</p>
-              <p className="text-xs text-brand-text-dim font-bold mt-2 uppercase">
-                {porra.total_participantes} Participantes
-              </p>
+              <p className="text-xs text-brand-text-dim font-bold mt-2 uppercase">{porra.total_participantes} Participantes</p>
             </div>
 
-            {/* CUADRO 2: Posición */}
+            {/* 2. Posición */}
             <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl relative overflow-hidden group">
-              <div className="absolute -right-4 -bottom-4 text-8xl opacity-5 font-black mono-font group-hover:scale-110 transition-transform select-none">
+              <div className="absolute -right-4 -bottom-4 text-8xl opacity-5 font-black mono-font group-hover:scale-110 transition-transform">
                 #{porra.posicion}
               </div>
               <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Posición</p>
@@ -121,27 +157,25 @@ const Dashboard: React.FC = () => {
               </p>
             </div>
 
-            {/* CUADRO 3: Puntos */}
+            {/* 3. Puntos */}
             <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group">
               <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Puntos totales</p>
               <p className="text-4xl font-black mono-font text-white">{porra.puntos} <span className="text-xs text-brand-text-dim font-normal uppercase">PTS</span></p>
               <div className="w-full bg-brand-blue-light h-1.5 rounded-full mt-4">
                 <div 
-                  className="bg-brand-green h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(0,255,0,0.4)]" 
-                  style={{ width: `${Math.min((porra.puntos / porra.max_puntos_posibles) * 100, 100)}%` }}
+                  className="bg-brand-green h-full rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(0,255,0,0.4)]" 
+                  style={{ width: `${(porra.puntos / porra.max_puntos_posibles) * 100}%` }}
                 ></div>
               </div>
             </div>
 
-            {/* CUADRO 4: Porcentaje de Acierto */}
+            {/* 4. Acertados */}
             <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group">
               <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Acertados</p>
               <p className="text-4xl font-black text-white">
                 {porra.aciertos} <span className="text-xs text-brand-text-dim font-normal uppercase">/ {porra.total_partidos}</span>
               </p>
-              <p className="text-xs text-brand-text-dim mt-2 font-medium">
-                {porra.porcentaje_acierto}% de acierto global
-              </p>
+              <p className="text-xs text-brand-text-dim mt-2 font-medium">{porra.porcentaje_acierto}% de acierto global</p>
             </div>
 
           </div>
