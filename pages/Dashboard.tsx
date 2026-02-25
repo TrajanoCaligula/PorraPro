@@ -82,63 +82,71 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* 2. Mapeo de las porras */}
       {porras?.map((porra, index) => (
-          <div key={porra.id || index} className="mb-8">
-            {/* Título de la Porra o Sección opcional */}
-            <h3 className="text-white font-bold mb-4 px-2">{porra.nombre_porra}</h3>
-    
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-      
-              {/* 1. CUADRO NUEVO: Información de la Porra */}
-              <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl relative overflow-hidden group">
-                <div className="absolute -right-4 -bottom-2 text-6xl opacity-5 font-black mono-font group-hover:rotate-12 transition-transform">
-                  {porra.siglas || "PR"}
-                </div>
-                <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Competición</p>
-                <p className="text-2xl lg:text-3xl font-black text-white truncate">{porra.nombre_porra}</p>
-                <p className="text-xs text-brand-text-dim font-bold mt-2 uppercase">
-                  {porra.total_participantes} Participantes
-                </p>
-              </div>
-
-              {/* 2. Posición (Antes era el 1) */}
-              <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl relative overflow-hidden group">
-                <div className="absolute -right-4 -bottom-4 text-8xl opacity-5 font-black mono-font group-hover:scale-110 transition-transform">
-                  #{porra.posicion}
-                </div>
-                <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Posición</p>
-                <p className="text-4xl font-black text-brand-green">
-                  {porra.posicion}º <span className="text-xs text-brand-text-dim font-normal uppercase">de {porra.total_participantes}</span>
-                </p>
-                <p className={`text-xs font-bold mt-2 ${porra.tendencia >= 0 ? 'text-brand-green' : 'text-red-500'}`}>
-                  {porra.tendencia >= 0 ? '▲' : '▼'} {Math.abs(porra.tendencia)} posiciones
-                </p>
-              </div>
-
-              {/* 3. Puntos Totales (Antes era el 2) */}
-              <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group">
-                <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Puntos totales</p>
-                <p className="text-4xl font-black mono-font">{porra.puntos} <span className="text-xs text-brand-text-dim font-normal uppercase">PTS</span></p>
-                <div className="w-full bg-brand-blue-light h-1.5 rounded-full mt-4">
-                  <div 
-                    className="bg-brand-green h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${(porra.puntos / porra.max_puntos_posibles) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* 4. Acertados (Antes era el 3) */}
-              <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group">
-                <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Acertados</p>
-                <p className="text-4xl font-black">
-                  {porra.aciertos} <span className="text-xs text-brand-text-dim font-normal uppercase">/ {porra.total_partidos}</span>
-                </p>
-                <p className="text-xs text-brand-text-dim mt-2">{porra.porcentaje_acierto}% de acierto global</p>
-              </div>
-
-            </div>
+        <div key={porra.id || index} className="mb-12">
+          {/* Título de la Porra */}
+          <div className="flex items-center gap-3 mb-4 px-2">
+            <div className="h-2 w-2 bg-brand-green rounded-full shadow-[0_0_10px_rgba(0,255,0,0.5)]"></div>
+            <h3 className="text-white font-bold text-lg uppercase tracking-tight">
+              {porra.nombre_porra}
+            </h3>
           </div>
-        ))}
+  
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    
+            {/* CUADRO 1: Info General */}
+            <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-2 text-6xl opacity-5 font-black mono-font group-hover:rotate-12 transition-transform select-none">
+                {porra.siglas || "PR"}
+              </div>
+              <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Competición</p>
+              <p className="text-xl lg:text-2xl font-black text-white truncate">{porra.nombre_porra}</p>
+              <p className="text-xs text-brand-text-dim font-bold mt-2 uppercase">
+                {porra.total_participantes} Participantes
+              </p>
+            </div>
+
+            {/* CUADRO 2: Posición */}
+            <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl relative overflow-hidden group">
+              <div className="absolute -right-4 -bottom-4 text-8xl opacity-5 font-black mono-font group-hover:scale-110 transition-transform select-none">
+                #{porra.posicion}
+              </div>
+              <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Posición</p>
+              <p className="text-4xl font-black text-brand-green">
+                {porra.posicion}º <span className="text-xs text-brand-text-dim font-normal uppercase">de {porra.total_participantes}</span>
+              </p>
+              <p className={`text-xs font-bold mt-2 flex items-center gap-1 ${porra.tendencia >= 0 ? 'text-brand-green' : 'text-red-500'}`}>
+                {porra.tendencia >= 0 ? '▲' : '▼'} {Math.abs(porra.tendencia)} posiciones
+              </p>
+            </div>
+
+            {/* CUADRO 3: Puntos */}
+            <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group">
+              <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Puntos totales</p>
+              <p className="text-4xl font-black mono-font text-white">{porra.puntos} <span className="text-xs text-brand-text-dim font-normal uppercase">PTS</span></p>
+              <div className="w-full bg-brand-blue-light h-1.5 rounded-full mt-4">
+                <div 
+                  className="bg-brand-green h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(0,255,0,0.4)]" 
+                  style={{ width: `${Math.min((porra.puntos / porra.max_puntos_posibles) * 100, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* CUADRO 4: Porcentaje de Acierto */}
+            <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group">
+              <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Acertados</p>
+              <p className="text-4xl font-black text-white">
+                {porra.aciertos} <span className="text-xs text-brand-text-dim font-normal uppercase">/ {porra.total_partidos}</span>
+              </p>
+              <p className="text-xs text-brand-text-dim mt-2 font-medium">
+                {porra.porcentaje_acierto}% de acierto global
+              </p>
+            </div>
+
+          </div>
+        </div>
+      ))}
 
       <div className="grid lg:grid-cols-3 gap-10">
         {/* Urgent Predictions */}
