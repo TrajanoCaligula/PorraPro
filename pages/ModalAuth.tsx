@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 type Props = {
   isOpen: boolean
@@ -9,28 +9,57 @@ type Props = {
 export default function ModalAuth({ isOpen, onClose }: Props) {
   const [loading, setLoading] = useState(false)
 
+  // --- NUEVO: Escuchamos el cambio de estado de sesión ---
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Extraemos los datos de Google de user_metadata
+        const profile = {
+          name: session.user.user_metadata.full_name || session.user.email,
+          avatar_url: session.user.user_metadata.avatar_url || ''
+        };
+
+        // Guardamos en localStorage para el Sidebar
+        localStorage.setItem('user_profile', JSON.stringify(profile));
+        
+        // Disparamos evento para que App.tsx se entere si ya estaba cargada
+        window.dispatchEvent(new Event('storage'));
+        
+        // Opcional: Cerrar el modal automáticamente al entrar
+        onClose();
+      }
+      
+      if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('user_profile');
+        window.dispatchEvent(new Event('storage'));
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [onClose]);
+
   if (!isOpen) return null
 
   const handleGoogleLogin = async () => {
     setLoading(true)
     try {
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}`,
+          // Asegúrate de que esta URL esté permitida en tu Dashboard de Supabase
+          redirectTo: window.location.origin, 
         },
       })
+      if (error) throw error
     } catch (error) {
       console.error("Error:", error)
-    } finally {
-      setLoading(false)
+      setLoading(false) // Solo lo quitamos si hay error, si no, redirige
     }
   }
 
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        {/* Botón X de cerrar mejorado */}
         <button onClick={onClose} style={closeButtonStyle}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M15 5L5 15M5 5l10 10" />
@@ -39,7 +68,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
 
         <div style={contentStyle}>
           <h2 style={titleStyle}>Bienvenido de nuevo</h2>
-          <p style={subtitleStyle}>Inicia sesion para acceder a todas las funciones</p>
+          <p style={subtitleStyle}>Inicia sesión para acceder a todas las funciones</p>
 
           <button
             onClick={handleGoogleLogin}
@@ -63,13 +92,15 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
           </button>
           
           <p style={footerTextStyle}>
-            Al continuar, aceptas nuestros terminos y condiciones
+            Al continuar, aceptas nuestros términos y condiciones
           </p>
         </div>
       </div>
     </div>
   )
 }
+
+// ... (Tus estilos se mantienen iguales)
 
 /* --- Estilos unificados (Corregidos) --- */
 
