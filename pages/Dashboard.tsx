@@ -73,11 +73,11 @@ const Dashboard = () => {
           <p className="text-brand-text-dim font-medium">Gestiona tus pronósticos y revisa tus estadísticas por competición.</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">   
-          <button className="bg-brand-green/10 border border-brand-green/20 text-brand-green px-6 py-3 rounded-xl font-bold hover:bg-brand-green hover:text-brand-blue-deep transition-all flex items-center justify-center gap-2">
-            <span>👥</span> Invitar amigos
+        <a href="/crear-porra" className="flex flex-col sm:flex-row gap-3">   
+          <button className="bg-brand-green/10 border border-brand-green/20 text-brand-green px-6 py-3 rounded-xl font-bold hover:bg-brand-green hover:text-brand-blue-deep transition-all flex items-center justify-center gap-2 w-full sm:w-auto">
+            <span>➕</span> Crear porra
           </button>
-        </div>
+        </a>
       </header>
 
       {/* SECCIÓN 1: PRÓXIMOS PARTIDOS (Prioridad) */}
