@@ -102,4 +102,98 @@ const Dashboard: React.FC = () => {
               <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group">
                 <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Puntos totales</p>
                 <p className="text-4xl font-black text-white">{porra.puntos} <span className="text-xs text-brand-text-dim font-normal uppercase">PTS</span></p>
-                <div className="w-full bg-brand-blue-
+                <div className="w-full bg-brand-blue-light h-1.5 rounded-full mt-4 overflow-hidden">
+                  <div 
+                    className="bg-brand-green h-full rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(0,255,0,0.4)]" 
+                    style={{ width: `${(porra.puntos / porra.max_puntos_posibles) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* CUADRO 4: Acertados (Antes Cuadro 3) */}
+              <div className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl group border-b-4 border-b-brand-gold">
+                <p className="text-brand-text-dim text-sm font-bold uppercase mb-2">Aciertos Exactos</p>
+                <p className="text-4xl font-black text-brand-gold">
+                  {porra.exactos} <span className="text-xs text-brand-text-dim font-normal uppercase">🎯</span>
+                </p>
+                <p className="text-xs text-brand-text-dim mt-2">
+                  <span className="text-white font-bold">{porra.aciertos}</span> aciertos globales ({porra.porcentaje_acierto}%)
+                </p>
+              </div>
+
+            </div>
+          </div>
+        ))}
+      </section>
+
+      {/* SECCIÓN INFERIOR: Partidos y Ranking */}
+      <div className="grid lg:grid-cols-3 gap-10">
+        
+        {/* Urgent Predictions */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-2xl font-black flex items-center gap-3 text-white italic uppercase">
+            <span>⚽</span> Próximos partidos
+            <span className="bg-red-600 text-[10px] px-2 py-1 rounded-md uppercase tracking-tighter animate-pulse">Urgente</span>
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {upcomingMatches.map(match => (
+              <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-5 rounded-2xl space-y-4 shadow-xl group hover:border-brand-green transition-colors">
+                <div className="flex justify-between items-center text-xs text-brand-text-dim font-bold uppercase">
+                  <span>{match.group || 'GRUPO A'}</span>
+                  <span className="text-orange-500">Cierra en 2h 14m</span>
+                </div>
+                <div className="flex justify-around items-center py-2 text-white">
+                  <div className="text-center space-y-2">
+                    <span className="text-4xl">{match.homeFlag}</span>
+                    <p className="text-sm font-bold">{match.home}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="number" placeholder="0" className="w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black focus:border-brand-green outline-none text-white" />
+                    <span className="text-brand-text-dim font-black">-</span>
+                    <input type="number" placeholder="0" className="w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black focus:border-brand-green outline-none text-white" />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <span className="text-4xl">{match.awayFlag}</span>
+                    <p className="text-sm font-bold">{match.away}</p>
+                  </div>
+                </div>
+                <button className="w-full bg-brand-green hover:bg-brand-green-dark text-brand-blue-deep py-3 rounded-xl font-black transition-all transform active:scale-95">
+                  Guardar pronóstico
+                </button>
+              </div>
+            ))}
+          </div>
+          <Link to="/partits" className="block text-center text-brand-green font-bold hover:underline">Ver todo el calendario →</Link>
+        </div>
+
+        {/* Mini Ranking */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-black flex items-center gap-3 text-white italic uppercase"><span>🏆</span> Ranking actual</h2>
+          <div className="bg-brand-blue-mid border border-brand-blue-light rounded-2xl overflow-hidden">
+            {PLAYERS.slice(0, 5).map((player, i) => (
+              <div key={i} className={`flex items-center gap-4 p-4 border-b border-brand-blue-light last:border-0 ${player.isMe ? 'bg-brand-green/10' : ''}`}>
+                <span className={`font-bold w-6 text-center text-sm ${i === 0 ? 'text-yellow-500' : 'text-brand-text-dim'}`}>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                </span>
+                <div className="w-8 h-8 rounded-full bg-brand-blue-light flex items-center justify-center font-bold text-xs border border-brand-border text-white">{player.avatar}</div>
+                <span className={`flex-grow font-bold text-sm ${player.isMe ? 'text-brand-green' : 'text-white'}`}>{player.name}</span>
+                <div className="text-right">
+                  <p className="font-bold text-sm text-white">{player.pts}</p>
+                  <p className={`text-[10px] ${player.variacio > 0 ? 'text-brand-green' : 'text-red-500'}`}>
+                    {player.variacio > 0 ? '▲' : player.variacio < 0 ? '▼' : '='} {Math.abs(player.variacio)}
+                  </p>
+                </div>
+              </div>
+            ))}
+            <Link to="/ranking" className="block p-4 bg-brand-blue-light/30 text-center text-xs font-bold uppercase tracking-widest text-brand-green hover:bg-brand-blue-light transition-all">
+              Ranking completo →
+            </Link>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
