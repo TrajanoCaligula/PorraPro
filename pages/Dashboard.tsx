@@ -1,7 +1,9 @@
+import React from 'react';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient'; 
 import { MATCHES } from '../mockData';
+
+import { supabase } from '../lib/supabase'; 
 
 const Dashboard = () => {
   const [porras, setPorras] = useState([]);
@@ -66,6 +68,7 @@ const Dashboard = () => {
 
   // 4. Si está cargando, mostrar un indicador
   if (loading) return <div className="bg-brand-blue-deep min-h-screen text-white p-10 font-black italic uppercase animate-pulse">Cargando estadísticas...</div>;
+
 
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-12 bg-brand-blue-deep min-h-screen text-white">
