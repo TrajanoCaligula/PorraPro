@@ -3,49 +3,33 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PLAYERS, MATCHES } from '../mockData';
 
-const Dashboard = () => {
-  const [porras, setPorras] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // 1. Extraemos los datos del usuario del localStorage
-  const userProfile = JSON.parse(localStorage.getItem('user_profile'));
-  const userId = userProfile?.id;
-  
-  // Definimos 'me' para que el JSX no de error, usando los datos del profile
-  const me = userProfile; 
-
-  // 2. Filtramos partidos (esto sigue igual por ahora)
-  const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
-
-  useEffect(() => {
-    if (userId) {
-      fetchMyPools();
-    } else {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  const fetchMyPools = async () => {
+const fetchMyPools = async () => {
     try {
       setLoading(true);
+      console.log("Buscando porras para el usuario ID:", userId); // Debug 1
+
       const { data, error } = await supabase
         .from('PoolParticipations')
         .select(`
           score,
-          Pools (
+          Pools!PoolParticipations_idPool_fkey (
             idPool,
             nombre
           )
         `)
         .eq('idUser', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error de Supabase:", error); // Debug 2
+        throw error;
+      }
+
+      console.log("Datos recibidos de Supabase:", data); // Debug 3
 
       const formattedPorras = data.map((item) => ({
-        id: item.Pools.idPool,
-        nombre: item.Pools.nombre,
+        id: item.Pools?.idPool,
+        nombre: item.Pools?.nombre || "Porra sin nombre",
         puntos: item.score || 0,
-        // Inicializamos valores para que el diseño no se rompa
         participantes: 0, 
         posicion: 0,
         tendencia: 0,
@@ -57,7 +41,7 @@ const Dashboard = () => {
 
       setPorras(formattedPorras);
     } catch (err) {
-      console.error("Error al obtener las porras:", err.message);
+      console.error("Error capturado:", err.message);
     } finally {
       setLoading(false);
     }
