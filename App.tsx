@@ -8,6 +8,8 @@ import Dashboard from './pages/Dashboard';
 import MatchesPage from './pages/MatchesPage';
 import RankingPage from './pages/RankingPage';
 import CreatePoolPage from './pages/CreatePoolPage';
+import SimulacioGrupsPage from './pages/SimulacioGrupsPage';
+import SimulacioFinalPage from './pages/SimulacioFinalPage';
 import InvitePage from './pages/InvitePage';
 import CheckoutPage from './pages/CheckoutPage';
 import { Logo } from './constants';
@@ -59,6 +61,22 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <WithNavigation><InvitePage /></WithNavigation>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+              path="/simulacion-grupos/:idPool" 
+              element={
+                <ProtectedRoute>
+                  <WithNavigation><SimulacioGrupsPage /></WithNavigation>
+                </ProtectedRoute>
+              } 
+            />
+          <Route 
+            path="/simulacion-finales/:idPool" 
+            element={
+              <ProtectedRoute>
+                <WithNavigation><SimulacioFinalPage /></WithNavigation>
               </ProtectedRoute>
             } 
           />
