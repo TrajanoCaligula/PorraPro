@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '../constants';
+import { supabase } from '../lib/supabase';
 
 interface TeamStats {
   name: string;
@@ -33,50 +34,76 @@ interface Group {
   matches: MatchPrediction[];
 }
 
-const INITIAL_GROUPS: Group[] = Array.from({ length: 12 }, (_, i) => {
-  const groupId = String.fromCharCode(65 + i); // A, B, C... L
-  return {
-    id: groupId,
-    name: `Grup ${groupId}`,
-    teams: [
-      { name: `Equip ${groupId}1`, flag: '🏳️' },
-      { name: `Equip ${groupId}2`, flag: '🏳️' },
-      { name: `Equip ${groupId}3`, flag: '🏳️' },
-      { name: `Equip ${groupId}4`, flag: '🏳️' },
-    ],
-    matches: [
-      { id: `${groupId}1`, home: `Equip ${groupId}1`, away: `Equip ${groupId}2`, homeFlag: '🏳️', awayFlag: '🏳️', homeScore: '', awayScore: '' },
-      { id: `${groupId}3`, home: `Equip ${groupId}3`, away: `Equip ${groupId}4`, homeFlag: '🏳️', awayFlag: '🏳️', homeScore: '', awayScore: '' },
-      { id: `${groupId}2`, home: `Equip ${groupId}1`, away: `Equip ${groupId}3`, homeFlag: '🏳️', awayFlag: '🏳️', homeScore: '', awayScore: '' },
-      { id: `${groupId}4`, home: `Equip ${groupId}2`, away: `Equip ${groupId}4`, homeFlag: '🏳️', awayFlag: '🏳️', homeScore: '', awayScore: '' },
-      { id: `${groupId}5`, home: `Equip ${groupId}1`, away: `Equip ${groupId}4`, homeFlag: '🏳️', awayFlag: '🏳️', homeScore: '', awayScore: '' },
-      { id: `${groupId}6`, home: `Equip ${groupId}2`, away: `Equip ${groupId}3`, homeFlag: '🏳️', awayFlag: '🏳️', homeScore: '', awayScore: '' },
-    ]
-  };
-});
+const [groups, setGroups] = useState<Group[]>([]);
+const [activeGroupId, setActiveGroupId] = useState('A');
+const [loading, setLoading] = useState(true); // Nuevo: para saber si está cargando
 
-// Override Group A with real teams as per prompt
-INITIAL_GROUPS[0].teams = [
-  { name: 'Espanya', flag: '🇪🇸' },
-  { name: 'Brasil', flag: '🇧🇷' },
-  { name: 'Argentina', flag: '🇦🇷' },
-  { name: 'Croàcia', flag: '🇭🇷' },
-];
-INITIAL_GROUPS[0].matches = [
-  { id: 'A1', home: 'Espanya', away: 'Brasil', homeFlag: '🇪🇸', awayFlag: '🇧🇷', homeScore: '', awayScore: '' },
-  { id: 'A2', home: 'Argentina', away: 'Croàcia', homeFlag: '🇦🇷', awayFlag: '🇭🇷', homeScore: '', awayScore: '' },
-  { id: 'A3', home: 'Espanya', away: 'Argentina', homeFlag: '🇪🇸', awayFlag: '🇦🇷', homeScore: '', awayScore: '' },
-  { id: 'A4', home: 'Brasil', away: 'Croàcia', homeFlag: '🇧🇷', awayFlag: '🇭🇷', homeScore: '', awayScore: '' },
-  { id: 'A5', home: 'Espanya', away: 'Croàcia', homeFlag: '🇪🇸', awayFlag: '🇭🇷', homeScore: '', awayScore: '' },
-  { id: 'A6', home: 'Brasil', away: 'Argentina', homeFlag: '🇧🇷', awayFlag: '🇦🇷', homeScore: '', awayScore: '' },
-];
+useEffect(() => {
+  const fetchTeamsData = async () => {
+    setLoading(true);
+    // 1. Traemos los equipos de la DB
+    const { data: teams, error } = await supabase
+      .from('teams')
+      .select('name, flag, group_name')
+      .order('group_name', { ascending: true });
+
+    if (error) {
+      console.error('Error:', error);
+      setLoading(false);
+      return;
+    }
+
+    // 2. Generamos la estructura de los 12 grupos (A-L)
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    
+    const formattedGroups: Group[] = letters.map(letter => {
+      const teamsInGroup = teams.filter(t => t.group_name === letter);
+      
+      // Lógica para crear los 6 partidos automáticos por grupo
+      const matches: MatchPrediction[] = [];
+      if (teamsInGroup.length === 4) {
+        // Combinaciones estándar de fase de grupos (1vs2, 3vs4, etc.)
+        const pairings = [[0,1], [2,3], [0,2], [1,3], [0,3], [1,2]];
+        pairings.forEach((p, i) => {
+          const h = teamsInGroup[p[0]];
+          const a = teamsInGroup[p[1]];
+          matches.push({
+            id: `${letter}${i + 1}`,
+            home: h.name, away: a.name,
+            homeFlag: h.flag, awayFlag: a.flag,
+            homeScore: '', awayScore: ''
+          });
+        });
+      }
+
+      return {
+        id: letter,
+        name: `Group ${letter}`,
+        teams: teamsInGroup.map(t => ({ name: t.name, flag: t.flag })),
+        matches
+      };
+    });
+
+    setGroups(formattedGroups);
+    setLoading(false);
+  };
+
+  fetchTeamsData();
+}, []);
 
 const SimulacioGrupsPage: React.FC = () => {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
   const [activeGroupId, setActiveGroupId] = useState('A');
 
-  const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId)!, [groups, activeGroupId]);
+  // Agregamos una validación para que no sea null
+    const activeGroup = useMemo(() => 
+      groups.find(g => g.id === activeGroupId) || null
+    , [groups, activeGroupId]);
+
+    const activeTable = useMemo(() => 
+      activeGroup ? calculateTable(activeGroup) : []
+    , [activeGroup]);
 
   const handleScoreChange = (matchId: string, side: 'home' | 'away', value: string) => {
     setGroups(prev => prev.map(g => ({
@@ -137,6 +164,17 @@ const SimulacioGrupsPage: React.FC = () => {
   const totalMatches = 72;
   const completedMatches = groups.reduce((acc, g) => acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0);
   const progress = (completedMatches / totalMatches) * 100;
+
+  if (loading || !activeGroup) {
+      return (
+        <div className="min-h-screen bg-brand-blue-deep flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
+            <p className="text-white font-black uppercase tracking-widest">Preparant Mundial 2026...</p>
+          </div>
+        </div>
+      );
+    }
 
   return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col">
