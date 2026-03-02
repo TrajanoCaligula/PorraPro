@@ -170,8 +170,8 @@ const SimulacioGrupsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col">
-      {/* HEADER */}
+    <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
+      {/* --- HEADER --- */}
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
@@ -182,15 +182,20 @@ const SimulacioGrupsPage: React.FC = () => {
               <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
             </div>
           </div>
+
           <div className="flex flex-col items-end gap-2 w-full md:w-auto">
             <div className="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest text-brand-text-dim">
               <span>Progrés de la simulació</span>
               <span>{completedMatches} / {totalMatches} partits</span>
             </div>
             <div className="w-full md:w-64 h-2 bg-brand-blue-light rounded-full overflow-hidden">
-              <div className="h-full bg-brand-green transition-all duration-500" style={{ width: `${progress}%` }}></div>
+              <div 
+                className="h-full bg-brand-green transition-all duration-500" 
+                style={{ width: `${progress}%` }}
+              ></div>
             </div>
           </div>
+
           <div className="flex gap-3">
             <button className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all">
               Guardar
@@ -198,7 +203,7 @@ const SimulacioGrupsPage: React.FC = () => {
             <button 
               onClick={() => navigate('/simulacio-final')}
               disabled={completedMatches < totalMatches}
-              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
             >
               Següent fase →
             </button>
@@ -206,7 +211,7 @@ const SimulacioGrupsPage: React.FC = () => {
         </div>
       </header>
 
-      {/* SELECTOR DE GRUPOS */}
+      {/* --- SELECTOR DE GRUPOS --- */}
       <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex px-6">
           {groups.map(g => (
@@ -221,20 +226,34 @@ const SimulacioGrupsPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* --- CONTENIDO PRINCIPAL --- */}
       <main className="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-10">
-          {/* Partidos */}
+          
+          {/* COLUMNA IZQUIERDA: PARTIDOS */}
           <section className="space-y-6">
-            <h2 className="text-2xl font-black uppercase">Partits Grup {activeGroupId}</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black uppercase">Partits del Grup {activeGroupId}</h2>
+              <span className="text-xs font-bold text-brand-text-dim uppercase tracking-widest">6 partits</span>
+            </div>
+
             <div className="space-y-4">
               {activeGroup.matches.map(match => (
-                <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl">
+                <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl hover:border-brand-green/30 transition-all">
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 flex flex-col items-center gap-2">
-                      <span className="text-4xl">{match.homeFlag}</span>
-                      <span className="font-bold text-sm text-center">{match.home}</span>
+                    
+                    {/* Home Team */}
+                    <div className="flex-1 flex flex-col items-center gap-3">
+                      <img 
+                        src={match.homeFlag} 
+                        alt={match.home} 
+                        className="w-16 h-12 object-contain drop-shadow-md"
+                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
+                      />
+                      <span className="font-bold text-xs text-center uppercase tracking-wider">{match.home}</span>
                     </div>
+
+                    {/* Score Inputs */}
                     <div className="flex items-center gap-3">
                       <input
                         type="number"
@@ -254,19 +273,31 @@ const SimulacioGrupsPage: React.FC = () => {
                         className="w-14 h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-2xl font-black focus:border-brand-green outline-none transition-all"
                       />
                     </div>
-                    <div className="flex-1 flex flex-col items-center gap-2">
-                      <span className="text-4xl">{match.awayFlag}</span>
-                      <span className="font-bold text-sm text-center">{match.away}</span>
+
+                    {/* Away Team */}
+                    <div className="flex-1 flex flex-col items-center gap-3">
+                      <img 
+                        src={match.awayFlag} 
+                        alt={match.away} 
+                        className="w-16 h-12 object-contain drop-shadow-md"
+                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
+                      />
+                      <span className="font-bold text-xs text-center uppercase tracking-wider">{match.away}</span>
                     </div>
+
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Tabla de Clasificación */}
+          {/* COLUMNA DERECHA: CLASIFICACIÓN */}
           <section className="space-y-6">
-            <h2 className="text-2xl font-black uppercase">Classificació</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black uppercase">Classificació</h2>
+              <span className="bg-brand-green/10 text-brand-green text-[10px] px-2 py-1 rounded font-bold uppercase border border-brand-green/20">Passen ronda</span>
+            </div>
+
             <div className="bg-brand-blue-mid border border-brand-blue-light rounded-2xl overflow-hidden shadow-2xl">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -279,16 +310,18 @@ const SimulacioGrupsPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-brand-blue-light">
                   {activeTable.map((team, i) => (
-                    <tr key={team.name} className={`${i < 2 ? 'bg-brand-green/5' : ''}`}>
-                      <td className="px-4 py-4 text-center font-bold">{i + 1}</td>
+                    <tr key={team.name} className={`transition-colors ${i < 2 ? 'bg-brand-green/5' : ''}`}>
+                      <td className="px-4 py-4 text-center">
+                        <span className={`font-bold ${i < 2 ? 'text-brand-green' : 'text-brand-text-dim'}`}>{i + 1}</span>
+                      </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{team.flag}</span>
+                          <img src={team.flag} alt="" className="w-8 h-6 object-contain rounded-sm" />
                           <span className="font-bold text-sm">{team.name}</span>
                         </div>
                       </td>
-                      <td className="px-2 py-4 text-center text-xs">{team.pj}</td>
-                      <td className={`px-4 py-4 text-center font-black text-lg ${i < 2 ? 'text-brand-green' : ''}`}>
+                      <td className="px-2 py-4 text-center text-xs text-brand-text-dim font-mono">{team.pj}</td>
+                      <td className={`px-4 py-4 text-center font-black text-lg ${i < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/20'}`}>
                         {team.pts}
                       </td>
                     </tr>
@@ -296,12 +329,23 @@ const SimulacioGrupsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Ayuda */}
+            <div className="bg-brand-blue-mid/30 border border-brand-blue-light p-6 rounded-2xl space-y-3">
+              <h3 className="font-black uppercase text-sm flex items-center gap-2">
+                <span>💡</span> Consell Pro
+              </h3>
+              <p className="text-xs text-brand-text-dim leading-relaxed">
+                La classificació es calcula en temps real. Recorda que en cas d'empat a punts, el primer criteri és la diferencia de gols (DG).
+              </p>
+            </div>
           </section>
+
         </div>
       </main>
 
       <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">
-        Porra Pro © 2026
+        Porra Pro © 2026 • Simulació de Fase de Grups
       </footer>
     </div>
   );
