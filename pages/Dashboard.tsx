@@ -6,24 +6,28 @@ import { PLAYERS, MATCHES } from '../mockData';
 const Dashboard = () => {
   const [porras, setPorras] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // 1. Obtener datos del usuario desde LocalStorage
+
+  // 1. Extraemos los datos del usuario del localStorage
   const userProfile = JSON.parse(localStorage.getItem('user_profile'));
   const userId = userProfile?.id;
+  
+  // Definimos 'me' para que el JSX no de error, usando los datos del profile
+  const me = userProfile; 
 
+  // 2. Filtramos partidos (esto sigue igual por ahora)
   const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
 
   useEffect(() => {
     if (userId) {
       fetchMyPools();
+    } else {
+      setLoading(false);
     }
   }, [userId]);
 
   const fetchMyPools = async () => {
     try {
       setLoading(true);
-      
-      // 2. Consulta a tu tabla PoolParticipations
       const { data, error } = await supabase
         .from('PoolParticipations')
         .select(`
@@ -37,14 +41,13 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // 3. Mapeo de datos (ajustado a tu diseño)
-      const formatted = data.map(item => ({
+      const formattedPorras = data.map((item) => ({
         id: item.Pools.idPool,
         nombre: item.Pools.nombre,
         puntos: item.score || 0,
-        // De momento hardcodeamos estos hasta tener la lógica de ranking/estadísticas en DB
-        posicion: "-", 
-        participantes: "-",
+        // Inicializamos valores para que el diseño no se rompa
+        participantes: 0, 
+        posicion: 0,
         tendencia: 0,
         aciertos: 0,
         totales: 0,
@@ -52,9 +55,9 @@ const Dashboard = () => {
         progreso: '0%'
       }));
 
-      setPorras(formatted);
+      setPorras(formattedPorras);
     } catch (err) {
-      console.error("Error cargando porras:", err);
+      console.error("Error al obtener las porras:", err.message);
     } finally {
       setLoading(false);
     }
