@@ -178,15 +178,15 @@ const SimulacioGrupsPage: React.FC = () => {
             <Logo />
             <div className="h-8 w-px bg-brand-blue-light hidden md:block"></div>
             <div>
-              <h1 className="text-xl font-black uppercase tracking-tight">Simulació — Fase de Grups</h1>
+              <h1 className="text-xl font-black uppercase tracking-tight">Simulación — Fase de Grupos</h1>
               <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
             </div>
           </div>
 
           <div className="flex flex-col items-end gap-2 w-full md:w-auto">
             <div className="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest text-brand-text-dim">
-              <span>Progrés de la simulació</span>
-              <span>{completedMatches} / {totalMatches} partits</span>
+              <span>Progreso de la simulación</span>
+              <span>{completedMatches} / {totalMatches} partidos</span>
             </div>
             <div className="w-full md:w-64 h-2 bg-brand-blue-light rounded-full overflow-hidden">
               <div 
@@ -205,7 +205,7 @@ const SimulacioGrupsPage: React.FC = () => {
               disabled={completedMatches < totalMatches}
               className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
             >
-              Següent fase →
+              Siguiente fase →
             </button>
           </div>
         </div>
@@ -220,7 +220,7 @@ const SimulacioGrupsPage: React.FC = () => {
               onClick={() => setActiveGroupId(g.id)}
               className={`px-6 py-4 text-sm font-black transition-all border-b-2 whitespace-nowrap ${activeGroupId === g.id ? 'border-brand-green text-brand-green bg-brand-green/5' : 'border-transparent text-brand-text-dim hover:text-white'}`}
             >
-              GRUP {g.id}
+              GRUPO {g.id}
             </button>
           ))}
         </div>
@@ -233,8 +233,8 @@ const SimulacioGrupsPage: React.FC = () => {
           {/* COLUMNA IZQUIERDA: PARTIDOS */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black uppercase">Partits Grup {activeGroupId}</h2>
-              <span className="text-xs font-bold text-brand-text-dim uppercase tracking-widest">Fase de Grups</span>
+              <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
+              <span className="text-xs font-bold text-brand-text-dim uppercase tracking-widest">Fase de Grupos</span>
             </div>
 
             <div className="space-y-4">
@@ -293,7 +293,7 @@ const SimulacioGrupsPage: React.FC = () => {
 
           {/* COLUMNA DERECHA: TABLA COMPLETA */}
           <section className="space-y-6">
-            <h2 className="text-2xl font-black uppercase">Classificació</h2>
+            <h2 className="text-2xl font-black uppercase">Classificación</h2>
 
             <div className="bg-brand-blue-mid border border-brand-blue-light rounded-2xl overflow-hidden shadow-2xl">
               <div className="overflow-x-auto">
@@ -301,7 +301,7 @@ const SimulacioGrupsPage: React.FC = () => {
                   <thead>
                     <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase tracking-widest text-brand-text-dim">
                       <th className="px-4 py-4 text-center w-12">Pos</th>
-                      <th className="px-4 py-4">Equip</th>
+                      <th className="px-4 py-4">Equipo</th>
                       <th className="px-2 py-4 text-center">PJ</th>
                       <th className="px-2 py-4 text-center">PG</th>
                       <th className="px-2 py-4 text-center">PE</th>
@@ -340,7 +340,7 @@ const SimulacioGrupsPage: React.FC = () => {
                 </table>
               </div>
               <div className="p-3 bg-brand-blue-light/10 text-[9px] text-brand-text-dim text-center uppercase tracking-widest font-bold">
-                * Els dos primers es classifiquen directament
+                * Los 2 primeros de cada grupo y los 8 mejores terceros pasan a dieciseisavos de final.
               </div>
             </div>
           </section>
