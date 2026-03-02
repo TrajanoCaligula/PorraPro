@@ -32,6 +32,10 @@ const Dashboard = () => {
     try {
       setLoading(true);
       
+      // Limpiamos el ID por si acaso
+      const cleanUserId = userId?.trim();
+      console.log("Consultando UUID:", cleanUserId);
+
       const { data, error } = await supabase
         .from('PoolParticipations')
         .select(`
@@ -41,26 +45,28 @@ const Dashboard = () => {
             nombre
           )
         `)
-        .eq('idUser', userId);
+        .eq('idUser', cleanUserId); // Enviamos el UUID limpio
 
       if (error) throw error;
 
-      const formattedPorras = data.map((item) => ({
-        id: item.Pools?.idPool,
-        nombre: item.Pools?.nombre || "Porra sin nombre",
-        puntos: item.score || 0,
-        participantes: 0, 
-        posicion: 0,
-        tendencia: 0,
-        aciertos: 0,
-        totales: 0,
-        exactos: 0,
-        progreso: '0%'
-      }));
+      console.log("Respuesta de DB:");
+      console.table(data); // Esto te mostrará una tabla bonita en la consola si hay datos
 
-      setPorras(formattedPorras);
+      if (data && data.length > 0) {
+        const formatted = data.map((item) => ({
+          id: item.Pools?.idPool,
+          nombre: item.Pools?.nombre || "Porra sin nombre",
+          puntos: item.score || 0,
+          posicion: "-", // Iniciales para que no sea 0
+          participantes: "-",
+          progreso: '0%'
+        }));
+        setPorras(formatted);
+      } else {
+        console.warn("No se encontraron participaciones para este UUID.");
+      }
     } catch (err) {
-      console.error("Error capturado:", err.message);
+      console.error("Error detallado:", err);
     } finally {
       setLoading(false);
     }
