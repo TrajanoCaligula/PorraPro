@@ -98,6 +98,21 @@ const SimulacioGrupsPage: React.FC = () => {
       fetchTeamsData();
     }, []);
 
+    const handleScoreChange = (matchId, side, value) => {
+      // 1. Si el input está vacío, lo dejamos vacío o ponemos 0 (según prefieras)
+      if (value === '') {
+        updateMatchScore(matchId, side, ''); 
+        return;
+      }
+
+      // 2. Convertimos a número y nos aseguramos de que sea entero y positivo
+      const numValue = parseInt(value, 10);
+
+      if (!isNaN(numValue) && numValue >= 0) {
+        updateMatchScore(matchId, side, numValue);
+      }
+    };
+
   // --- Lógica de la Tabla de Posiciones ---
   const calculateTable = (group: Group): TeamStats[] => {
     const stats: Record<string, TeamStats> = {};
@@ -247,7 +262,8 @@ const SimulacioGrupsPage: React.FC = () => {
                       <img 
                         src={match.homeFlag} 
                         alt="" 
-                        className="w-14 h-10 object-contain"
+                        {/* Añadido: rounded-md */}
+                        className="w-14 h-10 object-contain rounded-xl shadow-sm"
                         onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
                       />
                       <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.home}</span>
@@ -255,22 +271,40 @@ const SimulacioGrupsPage: React.FC = () => {
 
                     {/* Marcador */}
                     <div className="flex items-center gap-2 md:gap-3">
+                      {/* Marcador Local */}
                       <input
                         type="number"
                         min="0"
                         placeholder="0"
                         value={match.homeScore}
+                        onKeyDown={(e) => {
+                          if (["-", ".", ",", "e"].includes(e.key)) e.preventDefault();
+                        }}
+                        onPaste={(e) => {
+                          const paste = e.clipboardData.getData('text');
+                          if (!/^\d+$/.test(paste)) e.preventDefault();
+                        }}
                         onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
-                        className="w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all placeholder:opacity-20"
+                        className="w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all placeholder:opacity-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
+
                       <span className="text-brand-text-dim font-black text-xl">-</span>
+
+                      {/* Marcador Visitante */}
                       <input
                         type="number"
                         min="0"
                         placeholder="0"
                         value={match.awayScore}
+                        onKeyDown={(e) => {
+                          if (["-", ".", ",", "e"].includes(e.key)) e.preventDefault();
+                        }}
+                        onPaste={(e) => {
+                          const paste = e.clipboardData.getData('text');
+                          if (!/^\d+$/.test(paste)) e.preventDefault();
+                        }}
                         onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
-                        className="w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all placeholder:opacity-20"
+                        className="w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all placeholder:opacity-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                     </div>
 
@@ -279,12 +313,12 @@ const SimulacioGrupsPage: React.FC = () => {
                       <img 
                         src={match.awayFlag} 
                         alt="" 
-                        className="w-14 h-10 object-contain"
+                        {/* Añadido: rounded-md */}
+                        className="w-14 h-10 object-contain rounded-xl shadow-sm"
                         onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
                       />
                       <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.away}</span>
                     </div>
-
                   </div>
                 </div>
               ))}
