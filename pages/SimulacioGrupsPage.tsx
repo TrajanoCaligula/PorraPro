@@ -98,21 +98,6 @@ const SimulacioGrupsPage: React.FC = () => {
       fetchTeamsData();
     }, []);
 
-    const handleScoreChange = (matchId, side, value) => {
-      // 1. Si el input está vacío, lo dejamos vacío o ponemos 0 (según prefieras)
-      if (value === '') {
-        updateMatchScore(matchId, side, ''); 
-        return;
-      }
-
-      // 2. Convertimos a número y nos aseguramos de que sea entero y positivo
-      const numValue = parseInt(value, 10);
-
-      if (!isNaN(numValue) && numValue >= 0) {
-        updateMatchScore(matchId, side, numValue);
-      }
-    };
-
   // --- Lógica de la Tabla de Posiciones ---
   const calculateTable = (group: Group): TeamStats[] => {
     const stats: Record<string, TeamStats> = {};
@@ -159,9 +144,28 @@ const SimulacioGrupsPage: React.FC = () => {
 
   // --- Handlers ---
   const handleScoreChange = (matchId: string, side: 'home' | 'away', value: string) => {
+    // Si es vacío, permitimos borrar
+    if (value === '') {
+      updateGroups(matchId, side, '');
+      return;
+    }
+
+    // Solo permitimos números enteros positivos
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 0) {
+      // Guardamos como string para el input
+      updateGroups(matchId, side, numValue.toString());
+    }
+  };
+
+  const updateGroups = (matchId: string, side: 'home' | 'away', value: string) => {
     setGroups(prev => prev.map(g => ({
       ...g,
-      matches: g.matches.map(m => m.id === matchId ? { ...m, [side === 'home' ? 'homeScore' : 'awayScore']: value } : m)
+      matches: g.matches.map(m => 
+        m.id === matchId 
+          ? { ...m, [side === 'home' ? 'homeScore' : 'awayScore']: value } 
+          : m
+      )
     })));
   };
 
@@ -178,7 +182,7 @@ const SimulacioGrupsPage: React.FC = () => {
       <div className="min-h-screen bg-brand-blue-deep flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-green mx-auto mb-4"></div>
-          <p className="text-white font-black uppercase tracking-widest text-sm">Preparant Mundial 2026...</p>
+          <p className="text-white font-black uppercase tracking-widest text-sm">Preparando Simulación...</p>
         </div>
       </div>
     );
