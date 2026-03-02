@@ -1,77 +1,69 @@
-import React from 'react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // Corregido: Una sola línea de importación
 import { Link } from 'react-router-dom';
 import { MATCHES } from '../mockData';
-
 import { supabase } from '../lib/supabase'; 
 
 const Dashboard = () => {
   const [porras, setPorras] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // LOG DE CONTROL 1: ¿Se renderiza el componente?
-  console.log("--- DASHBOARD RENDER ---");
-
+  // 1. Definimos 'me' y 'userId' desde el localStorage
   const userId = localStorage.getItem('user_id');
+  const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+  const me = userProfile; 
 
-  // LOG DE CONTROL 2: ¿Tenemos ID?
+  // 2. Definimos 'upcomingMatches' para la SECCIÓN 1
+  const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
+
+  console.log("--- DASHBOARD RENDER ---");
   console.log("UserID detectado:", userId);
 
   useEffect(() => {
-    console.log("Ejecutando useEffect...");
     if (userId) {
       fetchMyPools();
     } else {
-      console.log("No hay userId, cancelando carga.");
       setLoading(false);
     }
   }, [userId]);
 
   const fetchMyPools = async () => {
-  try {
-    setLoading(true);
-    const userId = localStorage.getItem('user_id');
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('PoolParticipations')
+        .select(`
+          score,
+          Pools (
+            idPool,
+            name
+          )
+        `)
+        .eq('idUser', userId);
 
-    // Cambiamos la forma de pedir la relación
-    // Usamos el nombre de la tabla "Pools" tal cual está en tu base de datos
-    const { data, error } = await supabase
-      .from('PoolParticipations')
-      .select(`
-        score,
-        Pools (
-          idPool,
-          name
-        )
-      `)
-      .eq('idUser', userId);
+      if (error) throw error;
 
-    if (error) {
-      console.error("Error detallado de Supabase:", error);
-      throw error;
+      const formattedPorras = data.map((item) => ({
+        id: item.Pools?.idPool,
+        nombre: item.Pools?.name || "Sin nombre",
+        puntos: item.score || 0,
+        participantes: 0,
+        posicion: 0,
+        tendencia: 0,
+        aciertos: 0,
+        totales: 0,
+        exactos: 0,
+        progreso: '0%'
+      }));
+
+      setPorras(formattedPorras);
+    } catch (err) {
+      console.error("Fallo en la petición:", err.message);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    console.log("Datos recibidos:", data);
-
-    const formattedPorras = data.map((item) => ({
-      id: item.Pools?.idPool,
-      nombre: item.Pools?.nombre || "Sin nombre",
-      puntos: item.score || 0,
-      posicion: "-",
-      participantes: "-",
-      progreso: '0%'
-    }));
-
-    setPorras(formattedPorras);
-  } catch (err) {
-    console.error("Fallo en la petición:", err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // 4. Si está cargando, mostrar un indicador
   if (loading) return <div className="bg-brand-blue-deep min-h-screen text-white p-10 font-black italic uppercase animate-pulse">Cargando estadísticas...</div>;
-
 
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-12 bg-brand-blue-deep min-h-screen text-white">
