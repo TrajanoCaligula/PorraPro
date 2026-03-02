@@ -1,30 +1,47 @@
-import React from 'react';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PLAYERS, MATCHES } from '../mockData';
+import { supabase } from '../supabaseClient'; 
+import { MATCHES } from '../mockData';
 
-const fetchMyPools = async () => {
+const Dashboard = () => {
+  const [porras, setPorras] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 1. Obtener datos del usuario de localstorage
+  const userProfile = JSON.parse(localStorage.getItem('user_profile'));
+  const userId = userProfile?.id;
+  
+  // Definimos 'me' para que tu JSX actual no rompa
+  const me = userProfile;
+
+  // 2. Filtrar partidos para la sección superior
+  const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
+
+  // 3. Efecto para cargar datos de Supabase
+  useEffect(() => {
+    if (userId) {
+      fetchMyPools();
+    } else {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  const fetchMyPools = async () => {
     try {
       setLoading(true);
-      console.log("Buscando porras para el usuario ID:", userId); // Debug 1
-
+      
       const { data, error } = await supabase
         .from('PoolParticipations')
         .select(`
           score,
-          Pools!PoolParticipations_idPool_fkey (
+          Pools (
             idPool,
             nombre
           )
         `)
         .eq('idUser', userId);
 
-      if (error) {
-        console.error("Error de Supabase:", error); // Debug 2
-        throw error;
-      }
-
-      console.log("Datos recibidos de Supabase:", data); // Debug 3
+      if (error) throw error;
 
       const formattedPorras = data.map((item) => ({
         id: item.Pools?.idPool,
@@ -47,6 +64,8 @@ const fetchMyPools = async () => {
     }
   };
 
+  // 4. Si está cargando, mostrar un indicador
+  if (loading) return <div className="bg-brand-blue-deep min-h-screen text-white p-10 font-black italic uppercase animate-pulse">Cargando estadísticas...</div>;
 
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto space-y-12 bg-brand-blue-deep min-h-screen text-white">
