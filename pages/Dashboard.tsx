@@ -28,49 +28,46 @@ const Dashboard = () => {
   }, [userId]);
 
   const fetchMyPools = async () => {
-    console.log("Entrando en fetchMyPools..."); // LOG DE CONTROL 3
-    try {
-      setLoading(true);
-      
-      // Limpiamos el ID por si acaso
-      const cleanUserId = userId?.trim();
-      console.log("Consultando UUID:", cleanUserId);
+  try {
+    setLoading(true);
+    const userId = localStorage.getItem('user_id');
 
-      const { data, error } = await supabase
-        .from('PoolParticipations')
-        .select(`
-          score,
-          Pools (
-            idPool,
-            nombre
-          )
-        `)
-        .eq('idUser', cleanUserId); // Enviamos el UUID limpio
+    // Cambiamos la forma de pedir la relación
+    // Usamos el nombre de la tabla "Pools" tal cual está en tu base de datos
+    const { data, error } = await supabase
+      .from('PoolParticipations')
+      .select(`
+        score,
+        Pools (
+          idPool,
+          nombre
+        )
+      `)
+      .eq('idUser', userId);
 
-      if (error) throw error;
-
-      console.log("Respuesta de DB:");
-      console.table(data); // Esto te mostrará una tabla bonita en la consola si hay datos
-
-      if (data && data.length > 0) {
-        const formatted = data.map((item) => ({
-          id: item.Pools?.idPool,
-          nombre: item.Pools?.nombre || "Porra sin nombre",
-          puntos: item.score || 0,
-          posicion: "-", // Iniciales para que no sea 0
-          participantes: "-",
-          progreso: '0%'
-        }));
-        setPorras(formatted);
-      } else {
-        console.warn("No se encontraron participaciones para este UUID.");
-      }
-    } catch (err) {
-      console.error("Error detallado:", err);
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error("Error detallado de Supabase:", error);
+      throw error;
     }
-  };
+
+    console.log("Datos recibidos:", data);
+
+    const formattedPorras = data.map((item) => ({
+      id: item.Pools?.idPool,
+      nombre: item.Pools?.nombre || "Sin nombre",
+      puntos: item.score || 0,
+      posicion: "-",
+      participantes: "-",
+      progreso: '0%'
+    }));
+
+    setPorras(formattedPorras);
+  } catch (err) {
+    console.error("Fallo en la petición:", err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // 4. Si está cargando, mostrar un indicador
   if (loading) return <div className="bg-brand-blue-deep min-h-screen text-white p-10 font-black italic uppercase animate-pulse">Cargando estadísticas...</div>;
