@@ -3,60 +3,61 @@ import { Link } from 'react-router-dom';
 import { PLAYERS, MATCHES } from '../mockData';
 
 const Dashboard = () => {
-  const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
-  const me = PLAYERS.find(p => p.isMe);
+  const [porras, setPorras] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // 1. Obtener datos del usuario desde LocalStorage
+  const userProfile = JSON.parse(localStorage.getItem('user_profile'));
+  const userId = userProfile?.id;
 
-  // Datos extendidos de las porras
-  const porras = [
-    {
-      id: 1,
-      nombre: "Mundial Oficina 2026",
-      participantes: 20,
-      posicion: 3,
-      tendencia: 2,
-      puntos: me?.pts || 150,
-      aciertos: 23,
-      totales: 48,
-      exactos: me?.exactes || 5,
-      progreso: '65%'
-    },
-    {
-      id: 2,
-      nombre: "Champions League 24/25",
-      participantes: 100,
-      posicion: 15,
-      tendencia: -5,
-      puntos: 85,
-      aciertos: 12,
-      totales: 30,
-      exactos: 2,
-      progreso: '40%'
-    },
-    {
-      id: 3,
-      nombre: "Porra Amigos del Barrio",
-      participantes: 12,
-      posicion: 1,
-      tendencia: 0,
-      puntos: 210,
-      aciertos: 35,
-      totales: 50,
-      exactos: 8,
-      progreso: '85%'
-    },
-    {
-      id: 4,
-      nombre: "Eurocopa 2024 (Histórico)",
-      participantes: 45,
-      posicion: 10,
-      tendencia: 1,
-      puntos: 120,
-      aciertos: 18,
-      totales: 40,
-      exactos: 3,
-      progreso: '30%'
+  const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
+
+  useEffect(() => {
+    if (userId) {
+      fetchMyPools();
     }
-  ];
+  }, [userId]);
+
+  const fetchMyPools = async () => {
+    try {
+      setLoading(true);
+      
+      // 2. Consulta a tu tabla PoolParticipations
+      const { data, error } = await supabase
+        .from('PoolParticipations')
+        .select(`
+          score,
+          Pools (
+            idPool,
+            nombre
+          )
+        `)
+        .eq('idUser', userId);
+
+      if (error) throw error;
+
+      // 3. Mapeo de datos (ajustado a tu diseño)
+      const formatted = data.map(item => ({
+        id: item.Pools.idPool,
+        nombre: item.Pools.nombre,
+        puntos: item.score || 0,
+        // De momento hardcodeamos estos hasta tener la lógica de ranking/estadísticas en DB
+        posicion: "-", 
+        participantes: "-",
+        tendencia: 0,
+        aciertos: 0,
+        totales: 0,
+        exactos: 0,
+        progreso: '0%'
+      }));
+
+      setPorras(formatted);
+    } catch (err) {
+      console.error("Error cargando porras:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (
