@@ -21,6 +21,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
 
         // Guardamos en localStorage para el Sidebar
         localStorage.setItem('user_profile', JSON.stringify(profile));
+        localStorage.setItem('user_id', session.user.id);
         
         // Disparamos evento para que App.tsx se entere si ya estaba cargada
         window.dispatchEvent(new Event('storage'));
@@ -31,6 +32,7 @@ export default function ModalAuth({ isOpen, onClose }: Props) {
       
       if (event === 'SIGNED_OUT') {
         localStorage.removeItem('user_profile');
+        localStorage.removeItem('user_id');
         window.dispatchEvent(new Event('storage'));
       }
     });
