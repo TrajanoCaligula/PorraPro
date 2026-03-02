@@ -227,41 +227,41 @@ const SimulacioGrupsPage: React.FC = () => {
       </nav>
 
       {/* --- CONTENIDO PRINCIPAL --- */}
-      <main className="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full">
+      <main className="flex-grow p-4 md:p-10 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-10">
           
           {/* COLUMNA IZQUIERDA: PARTIDOS */}
           <section className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black uppercase">Partits del Grup {activeGroupId}</h2>
-              <span className="text-xs font-bold text-brand-text-dim uppercase tracking-widest">6 partits</span>
+              <h2 className="text-2xl font-black uppercase">Partits Grup {activeGroupId}</h2>
+              <span className="text-xs font-bold text-brand-text-dim uppercase tracking-widest">Fase de Grups</span>
             </div>
 
             <div className="space-y-4">
               {activeGroup.matches.map(match => (
-                <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl hover:border-brand-green/30 transition-all">
+                <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl">
                   <div className="flex items-center justify-between gap-4">
                     
                     {/* Home Team */}
                     <div className="flex-1 flex flex-col items-center gap-3">
                       <img 
                         src={match.homeFlag} 
-                        alt={match.home} 
-                        className="w-16 h-12 object-contain drop-shadow-md"
+                        alt="" 
+                        className="w-14 h-10 object-contain"
                         onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
                       />
-                      <span className="font-bold text-xs text-center uppercase tracking-wider">{match.home}</span>
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.home}</span>
                     </div>
 
-                    {/* Score Inputs */}
-                    <div className="flex items-center gap-3">
+                    {/* Marcador */}
+                    <div className="flex items-center gap-2 md:gap-3">
                       <input
                         type="number"
                         min="0"
                         placeholder="0"
                         value={match.homeScore}
                         onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
-                        className="w-14 h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-2xl font-black focus:border-brand-green outline-none transition-all"
+                        className="w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all placeholder:opacity-20"
                       />
                       <span className="text-brand-text-dim font-black text-xl">-</span>
                       <input
@@ -270,7 +270,7 @@ const SimulacioGrupsPage: React.FC = () => {
                         placeholder="0"
                         value={match.awayScore}
                         onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
-                        className="w-14 h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-2xl font-black focus:border-brand-green outline-none transition-all"
+                        className="w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all placeholder:opacity-20"
                       />
                     </div>
 
@@ -278,11 +278,11 @@ const SimulacioGrupsPage: React.FC = () => {
                     <div className="flex-1 flex flex-col items-center gap-3">
                       <img 
                         src={match.awayFlag} 
-                        alt={match.away} 
-                        className="w-16 h-12 object-contain drop-shadow-md"
+                        alt="" 
+                        className="w-14 h-10 object-contain"
                         onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
                       />
-                      <span className="font-bold text-xs text-center uppercase tracking-wider">{match.away}</span>
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.away}</span>
                     </div>
 
                   </div>
@@ -291,53 +291,57 @@ const SimulacioGrupsPage: React.FC = () => {
             </div>
           </section>
 
-          {/* COLUMNA DERECHA: CLASIFICACIÓN */}
+          {/* COLUMNA DERECHA: TABLA COMPLETA */}
           <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black uppercase">Classificació</h2>
-              <span className="bg-brand-green/10 text-brand-green text-[10px] px-2 py-1 rounded font-bold uppercase border border-brand-green/20">Passen ronda</span>
-            </div>
+            <h2 className="text-2xl font-black uppercase">Classificació</h2>
 
             <div className="bg-brand-blue-mid border border-brand-blue-light rounded-2xl overflow-hidden shadow-2xl">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase tracking-widest text-brand-text-dim">
-                    <th className="px-4 py-4 text-center w-12">Pos</th>
-                    <th className="px-4 py-4">Equip</th>
-                    <th className="px-2 py-4 text-center">PJ</th>
-                    <th className="px-2 py-4 text-center">Pts</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-blue-light">
-                  {activeTable.map((team, i) => (
-                    <tr key={team.name} className={`transition-colors ${i < 2 ? 'bg-brand-green/5' : ''}`}>
-                      <td className="px-4 py-4 text-center">
-                        <span className={`font-bold ${i < 2 ? 'text-brand-green' : 'text-brand-text-dim'}`}>{i + 1}</span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={team.flag} alt="" className="w-8 h-6 object-contain rounded-sm" />
-                          <span className="font-bold text-sm">{team.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-4 text-center text-xs text-brand-text-dim font-mono">{team.pj}</td>
-                      <td className={`px-4 py-4 text-center font-black text-lg ${i < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/20'}`}>
-                        {team.pts}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[500px]">
+                  <thead>
+                    <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase tracking-widest text-brand-text-dim">
+                      <th className="px-4 py-4 text-center w-12">Pos</th>
+                      <th className="px-4 py-4">Equip</th>
+                      <th className="px-2 py-4 text-center">PJ</th>
+                      <th className="px-2 py-4 text-center">PG</th>
+                      <th className="px-2 py-4 text-center">PE</th>
+                      <th className="px-2 py-4 text-center">PP</th>
+                      <th className="px-2 py-4 text-center">GF</th>
+                      <th className="px-2 py-4 text-center">GC</th>
+                      <th className="px-2 py-4 text-center">DG</th>
+                      <th className="px-4 py-4 text-center bg-brand-blue-light/50 text-white">Pts</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Ayuda */}
-            <div className="bg-brand-blue-mid/30 border border-brand-blue-light p-6 rounded-2xl space-y-3">
-              <h3 className="font-black uppercase text-sm flex items-center gap-2">
-                <span>💡</span> Consell Pro
-              </h3>
-              <p className="text-xs text-brand-text-dim leading-relaxed">
-                La classificació es calcula en temps real. Recorda que en cas d'empat a punts, el primer criteri és la diferencia de gols (DG).
-              </p>
+                  </thead>
+                  <tbody className="divide-y divide-brand-blue-light">
+                    {activeTable.map((team, i) => (
+                      <tr key={team.name} className={`transition-colors ${i < 2 ? 'bg-brand-green/5' : ''}`}>
+                        <td className="px-4 py-4 text-center font-bold text-xs">{i + 1}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm shadow-sm" />
+                            <span className="font-bold text-xs truncate w-24">{team.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pg}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pe}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pp}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
+                        <td className={`px-2 py-4 text-center text-[10px] font-bold font-mono ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
+                          {team.dg > 0 ? `+${team.dg}` : team.dg}
+                        </td>
+                        <td className={`px-4 py-4 text-center font-black text-md ${i < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/20'}`}>
+                          {team.pts}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-3 bg-brand-blue-light/10 text-[9px] text-brand-text-dim text-center uppercase tracking-widest font-bold">
+                * Els dos primers es classifiquen directament
+              </div>
             </div>
           </section>
 
@@ -345,7 +349,7 @@ const SimulacioGrupsPage: React.FC = () => {
       </main>
 
       <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">
-        Porra Pro © 2026 • Simulació de Fase de Grups
+        Porra Pro © 2026
       </footer>
     </div>
   );
