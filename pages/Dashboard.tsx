@@ -40,7 +40,7 @@ const Dashboard = () => {
         score,
         Pools (
           idPool,
-          nombre
+          name
         )
       `)
       .eq('idUser', userId);
