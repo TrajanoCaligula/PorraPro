@@ -12,8 +12,7 @@ const Dashboard = () => {
   // LOG DE CONTROL 1: ¿Se renderiza el componente?
   console.log("--- DASHBOARD RENDER ---");
 
-  const userProfile = JSON.parse(localStorage.getItem('user_profile'));
-  const userId = userProfile?.id;
+  const userId = localStorage.getItem('user_id');
 
   // LOG DE CONTROL 2: ¿Tenemos ID?
   console.log("UserID detectado:", userId);
