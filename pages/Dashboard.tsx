@@ -9,26 +9,27 @@ const Dashboard = () => {
   const [porras, setPorras] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Obtener datos del usuario de localstorage
+  // LOG DE CONTROL 1: ¿Se renderiza el componente?
+  console.log("--- DASHBOARD RENDER ---");
+
   const userProfile = JSON.parse(localStorage.getItem('user_profile'));
   const userId = userProfile?.id;
-  
-  // Definimos 'me' para que tu JSX actual no rompa
-  const me = userProfile;
 
-  // 2. Filtrar partidos para la sección superior
-  const upcomingMatches = MATCHES.filter(m => m.status === 'upcoming').slice(0, 2);
+  // LOG DE CONTROL 2: ¿Tenemos ID?
+  console.log("UserID detectado:", userId);
 
-  // 3. Efecto para cargar datos de Supabase
   useEffect(() => {
+    console.log("Ejecutando useEffect...");
     if (userId) {
       fetchMyPools();
     } else {
+      console.log("No hay userId, cancelando carga.");
       setLoading(false);
     }
   }, [userId]);
 
   const fetchMyPools = async () => {
+    console.log("Entrando en fetchMyPools..."); // LOG DE CONTROL 3
     try {
       setLoading(true);
       
