@@ -44,53 +44,59 @@ const SimulacioGrupsPage: React.FC = () => {
 
   // --- Carga de datos de Supabase ---
   useEffect(() => {
-    const fetchTeamsData = async () => {
-      setLoading(true);
-      const { data: teams, error } = await supabase
-        .from('teams')
-        .select('name, flag, group_name')
-        .order('group_name', { ascending: true });
+      const fetchTeamsData = async () => {
+        setLoading(true);
+    
+        // 1. Nota: Usamos "Teams" con T mayúscula para que coincida con tu SQL
+        const { data: teams, error } = await supabase
+          .from('Teams') 
+          .select('name, flag_url, group_name')
+          .order('group_name', { ascending: true });
 
-      if (error) {
-        console.error('Error:', error);
-        setLoading(false);
-        return;
-      }
-
-      const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-      
-      const formattedGroups: Group[] = letters.map(letter => {
-        const teamsInGroup = teams.filter(t => t.group_name === letter);
-        const matches: MatchPrediction[] = [];
-
-        if (teamsInGroup.length === 4) {
-          const pairings = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
-          pairings.forEach((p, i) => {
-            const h = teamsInGroup[p[0]];
-            const a = teamsInGroup[p[1]];
-            matches.push({
-              id: `${letter}${i + 1}`,
-              home: h.name, away: a.name,
-              homeFlag: h.flag, awayFlag: a.flag,
-              homeScore: '', awayScore: ''
-            });
-          });
+        if (error) {
+          console.error('Error detallado de Supabase:', error.message);
+          setLoading(false);
+          return;
         }
 
-        return {
-          id: letter,
-          name: `Group ${letter}`,
-          teams: teamsInGroup.map(t => ({ name: t.name, flag: t.flag })),
-          matches
-        };
-      });
+        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+    
+        const formattedGroups: Group[] = letters.map(letter => {
+          // Filtramos por group_name que es donde guardaste la letra (A, B, C...)
+          const teamsInGroup = teams.filter(t => t.group_name === letter);
+          const matches: MatchPrediction[] = [];
 
-      setGroups(formattedGroups);
-      setLoading(false);
-    };
+          if (teamsInGroup.length === 4) {
+            const pairings = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
+            pairings.forEach((p, i) => {
+              const h = teamsInGroup[p[0]];
+              const a = teamsInGroup[p[1]];
+              matches.push({
+                id: `${letter}${i + 1}`,
+                home: h.name, 
+                away: a.name,
+                homeFlag: h.flag_url || '🏳️', // Usamos flag_url de tu tabla
+                awayFlag: a.flag_url || '🏳️', 
+                homeScore: '', 
+                awayScore: ''
+              });
+            });
+          }
 
-    fetchTeamsData();
-  }, []);
+          return {
+            id: letter,
+            name: `Group ${letter}`,
+            teams: teamsInGroup.map(t => ({ name: t.name, flag: t.flag_url || '🏳️' })),
+            matches
+          };
+        });
+
+        setGroups(formattedGroups);
+        setLoading(false);
+      };
+
+      fetchTeamsData();
+    }, []);
 
   // --- Lógica de la Tabla de Posiciones ---
   const calculateTable = (group: Group): TeamStats[] => {
