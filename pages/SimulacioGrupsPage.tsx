@@ -204,7 +204,7 @@ const SimulacioGrupsPage: React.FC = () => {
 
           <div className="flex flex-col items-end gap-2 w-full md:w-auto">
             <div className="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest text-brand-text-dim">
-              <span>Progreso de la simulación</span>
+              <span>Progreso de la simulación   </span>
               <span>{completedMatches} / {totalMatches} partidos</span>
             </div>
             <div className="w-full md:w-64 h-2 bg-brand-blue-light rounded-full overflow-hidden">
