@@ -266,7 +266,6 @@ const SimulacioGrupsPage: React.FC = () => {
                       <img 
                         src={match.homeFlag} 
                         alt="" 
-                        {/* Añadido: rounded-md */}
                         className="w-14 h-10 object-contain rounded-xl shadow-sm"
                         onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
                       />
@@ -317,7 +316,6 @@ const SimulacioGrupsPage: React.FC = () => {
                       <img 
                         src={match.awayFlag} 
                         alt="" 
-                        {/* Añadido: rounded-md */}
                         className="w-14 h-10 object-contain rounded-xl shadow-sm"
                         onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
                       />
