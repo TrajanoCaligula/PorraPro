@@ -187,7 +187,7 @@ const SimulacioGrupsPage: React.FC = () => {
     })));
   };
 
-  const handleSavePredictions = async () => {
+  const handleSavePredictions = async (showAlert = false) => {
     setLoading(true);
     const userId = localStorage.getItem('user_id');
     try {
@@ -208,16 +208,16 @@ const SimulacioGrupsPage: React.FC = () => {
           }))
       );
 
-      if (predictionsToSave.length === 0) {
-        alert("No hay cambios para guardar.");
-        return;
+      if (predictionsToSave.length > 0) {
+        const { error } = await supabase.from('Predictions').upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
+        if (error) throw error;
       }
-
-      const { error } = await supabase.from('Predictions').upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
-      if (error) throw error;
-      alert("¡Sincronizado!");
+      
+      if (showAlert) alert("¡Sincronizado!");
+      return true;
     } catch (err: any) {
-      alert(err.message);
+      alert("Error al guardar: " + err.message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -264,18 +264,27 @@ const SimulacioGrupsPage: React.FC = () => {
 
           <div className="flex gap-3">
             <button 
-              onClick={handleSavePredictions}
+              onClick={() => handleSavePredictions(true)}
               disabled={loading}
               className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all disabled:opacity-50"
             >
-              {loading ? 'Guardando...' : 'Guardar'}
+              {loading ? '...' : 'Guardar'}
             </button>
             <button 
-              onClick={() => navigate('/simulacio-final')}
-              disabled={completedMatches < totalMatches}
-              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
+              onClick={async () => {
+                const saved = await handleSavePredictions(false);
+                if (saved) {
+                  navigate(`/simulacio-final/${poolCode}`);
+                }
+              }}
+              disabled={completedMatches < totalMatches || loading}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
+                completedMatches === totalMatches 
+                  ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
+                  : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
+              }`}
             >
-              Siguiente fase →
+              {loading ? 'Guardando...' : 'Siguiente fase →'}
             </button>
           </div>
         </div>
