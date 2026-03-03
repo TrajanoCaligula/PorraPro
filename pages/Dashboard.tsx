@@ -54,7 +54,8 @@ const Dashboard = () => {
         progreso: '0%'
       }));
 
-      setPorras(formattedPorras);
+      // Filtramos cualquier porra que no tenga código para evitar links rotos
+        setPorras(formattedPorras.filter(p => p.codigo !== null));
     } catch (err) {
       console.error("Error en la carga:", err.message);
     } finally {
@@ -136,9 +137,10 @@ const Dashboard = () => {
           {porras.map((porra) => (
             /* TODA LA FILA ES UN LINK A LA SIMULACIÓN */
             <Link 
-              key={porra.id} 
-              to={`/simulacion-grupos/${porra.codigo}`} 
-              className="block space-y-6 animate-fadeIn group/card hover:opacity-90 transition-all"
+                key={porra.codigo || porra.id} // Mejor usar el código como key si existe
+                to={`/simulacion-grupos/${porra.codigo}`} 
+                className="block space-y-6 animate-fadeIn group/card hover:opacity-90 transition-all"
+  
             >
               <div className="flex items-center justify-between px-2 border-l-4 border-brand-green pl-4 group-hover/card:border-white transition-colors">
                 <div>
