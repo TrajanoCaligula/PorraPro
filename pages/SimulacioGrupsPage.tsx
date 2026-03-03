@@ -53,6 +53,26 @@ const SimulacioGrupsPage: React.FC = () => {
       setLoading(true);
 
       try {
+      const userId = localStorage.getItem('user_id');
+        
+        // Buscamos directamente en las participaciones del usuario
+          // Filtrando por el código de la porra (que está en la tabla relacionada 'Pools')
+          const { data: participation, error: partError } = await supabase
+            .from('PoolParticipations')
+            .select(`
+              idPool,
+              Pools!inner (code)
+            `)
+            .eq('idUser', userId)
+            .eq('Pools.code', poolCode) // Filtramos por el string de la URL
+            .single();
+
+          if (partError || !participation) {
+            console.error("Usuario no autorizado para esta porra");
+            navigate('/dashboard');
+            return;
+          }
+
         // 1. Traemos los equipos
         const { data: teams, error: teamsError } = await supabase
           .from('Teams')
