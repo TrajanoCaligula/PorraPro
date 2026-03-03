@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,useParams } from 'react-router-dom';
 import { Logo } from '../constants';
 import { supabase } from '../lib/supabase';
 
@@ -37,6 +37,7 @@ interface Group {
 
 const SimulacioGrupsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { poolCode } = useParams(); // Obtener el código directamente de la ruta configurada
   
   // --- Estados ---
   const [groups, setGroups] = useState<Group[]>([]);
@@ -176,7 +177,7 @@ const SimulacioGrupsPage: React.FC = () => {
 
       try {
         // 1. Obtener datos de contexto
-        const userId = localStorage.getItem('uuid');
+        const userId = localStorage.getItem('user_id');
         // Obtenemos el código de la URL (el último segmento)
         const poolCode = window.location.pathname.split('/').filter(Boolean).pop();
 
@@ -218,32 +219,33 @@ const SimulacioGrupsPage: React.FC = () => {
         // 4. Recorrer todos los grupos y partidos de la UI
         for (const group of groups) {
           group.matches.forEach(match => {
-            // Solo guardamos si ambos campos tienen valor
-            if (match.homeScore !== '' && match.awayScore !== '') {
-              const matchData = dbMatches.find(m => 
-                m.home_team_name === match.home && m.away_team_name === match.away
-              );
+              if (match.homeScore !== '' && match.awayScore !== '') {
+    
+                // Buscamos el partido comparando los nombres que vienen de la relación
+                const matchData = dbMatches.find(m => 
+                  m.teamHome?.name === match.home && m.teamAway?.name === match.away
+                );
 
-              if (matchData) {
-                const hS = parseInt(match.homeScore);
-                const aS = parseInt(match.awayScore);
-            
-                // Lógica de ganador
-                let idWinner = 0;
-                if (hS > aS) idWinner = matchData.home_team_id;
-                else if (aS > hS) idWinner = matchData.away_team_id;
+                if (matchData) {
+                  const hS = parseInt(match.homeScore);
+                  const aS = parseInt(match.awayScore);
+      
+                  // Lógica de ganador usando los IDs de tu tabla
+                  let idWinner = null; // En SQL es mejor null si no hay ganador (empate)
+                  if (hS > aS) idWinner = matchData.idTeamOne;
+                  else if (aS > hS) idWinner = matchData.idTeamTwo;
 
-                predictionsToSave.push({
-                  idUser: userId, // Supabase UUID
-                  idPool: realPoolId, // El ID bigint que acabamos de buscar
-                  idMatch: matchData.id,
-                  scoreHome: hS,
-                  scoreAway: aS,
-                  idTeamWinner: idWinner
-                });
+                  predictionsToSave.push({
+                    idUser: userId, 
+                    idPool: realPoolId, 
+                    idMatch: matchData.idMatch, // Usamos idMatch (el nombre de tu tabla)
+                    scoreHome: hS,
+                    scoreAway: aS,
+                    idTeamWinner: idWinner
+                  });
+                }
               }
-            }
-          });
+            });
         }
 
         if (predictionsToSave.length === 0) {
