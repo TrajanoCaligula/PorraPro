@@ -202,7 +202,13 @@ const SimulacioGrupsPage: React.FC = () => {
         // 3. Obtener los partidos de la DB para cruzar IDs
         const { data: dbMatches, error: matchesError } = await supabase
           .from('Matches')
-          .select('idMatch, home_team_name, away_team_name, home_team_id, away_team_id')
+          .select(`
+            idMatch,
+            idTeamOne,
+            idTeamTwo,
+            teamHome:idTeamOne ( name ),
+            teamAway:idTeamTwo ( name )
+          `)
           .eq('phase', 'GROUP_STAGE');
 
         if (matchesError || !dbMatches) throw new Error("Error al cargar partidos de referencia.");
