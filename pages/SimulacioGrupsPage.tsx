@@ -19,9 +19,12 @@ interface TeamStats {
 }
 
 interface MatchPrediction {
-  id: string;
+  id: string; // ID interno de la UI (ej: "A1")
+  idMatchDB?: number; // <--- El ID real de la tabla Matches
   home: string;
   away: string;
+  homeId: number; // <--- El ID real de la tabla Teams
+  awayId: number; // <--- El ID real de la tabla Teams
   homeFlag: string;
   awayFlag: string;
   homeScore: string;
@@ -64,7 +67,6 @@ const SimulacioGrupsPage: React.FC = () => {
         const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
     
         const formattedGroups: Group[] = letters.map(letter => {
-          // Filtramos por group_name que es donde guardaste la letra (A, B, C...)
           const teamsInGroup = teams.filter(t => t.group_name === letter);
           const matches: MatchPrediction[] = [];
 
@@ -77,8 +79,10 @@ const SimulacioGrupsPage: React.FC = () => {
                 id: `${letter}${i + 1}`,
                 home: h.name, 
                 away: a.name,
-                homeFlag: h.flag_url || '🏳️', // Usamos flag_url de tu tabla
-                awayFlag: a.flag_url || '🏳️', 
+                homeId: h.idTeam, // <--- GUARDAMOS EL ID REAL DE LA DB
+                awayId: a.idTeam, // <--- GUARDAMOS EL ID REAL DE LA DB
+                homeFlag: h.flag_url || '🏳️',
+                awayFlag: a.flag_url || '🏳️',
                 homeScore: '', 
                 awayScore: ''
               });
@@ -174,97 +178,68 @@ const SimulacioGrupsPage: React.FC = () => {
   // --- Save ---
   const handleSavePredictions = async () => {
       setLoading(true);
+      const userId = localStorage.getItem('user_id');
+      const poolCode = window.location.pathname.split('/').filter(Boolean).pop();
 
       try {
-        // 1. Obtener datos de contexto
-        const userId = localStorage.getItem('user_id');
-        // Obtenemos el código de la URL (el último segmento)
-        const poolCode = window.location.pathname.split('/').filter(Boolean).pop();
+        // 1. Validaciones de contexto (Pool y User)
+        const { data: poolData } = await supabase.from('Pools').select('idPool').eq('code', poolCode).single();
+        if (!poolData || !userId) throw new Error("No se encontró el usuario o la porra.");
 
-        if (!userId || !poolCode) {
-          alert("Error: No se encontró el usuario o el código de la porra.");
-          setLoading(false);
-          return;
-        }
-
-        // 2. BUSCAR EL ID DE LA POOL usando el código
-        const { data: poolData, error: poolError } = await supabase
-          .from('Pools')
-          .select('idPool')
-          .eq('code', poolCode)
-          .single();
-
-        if (poolError || !poolData) {
-          throw new Error("No se pudo encontrar la porra con ese código.");
-        }
-
-        const realPoolId = poolData.idPool;
-
-        // 3. Obtener los partidos de la DB para cruzar IDs
-        const { data: dbMatches, error: matchesError } = await supabase
+        // 2. Traemos los partidos de la DB para saber sus idMatch
+        const { data: dbMatches } = await supabase
           .from('Matches')
-          .select(`
-            idMatch,
-            idTeamOne,
-            idTeamTwo,
-            teamHome:idTeamOne ( name ),
-            teamAway:idTeamTwo ( name )
-          `)
+          .select('idMatch, idTeamOne, idTeamTwo')
           .eq('phase', 'GROUP_STAGE');
 
-        if (matchesError || !dbMatches) throw new Error("Error al cargar partidos de referencia.");
+        if (!dbMatches) throw new Error("No se pudieron cargar los partidos de referencia.");
 
         const predictionsToSave = [];
 
-        // 4. Recorrer todos los grupos y partidos de la UI
+        // 3. Recorremos lo que el usuario escribió en la pantalla
         for (const group of groups) {
-          group.matches.forEach(match => {
-              if (match.homeScore !== '' && match.awayScore !== '') {
-    
-                // Buscamos el partido comparando los nombres que vienen de la relación
-                const matchData = dbMatches.find(m => 
-                  m.teamHome?.name === match.home && m.teamAway?.name === match.away
-                );
+          for (const match of group.matches) {
+            if (match.homeScore !== '' && match.awayScore !== '') {
+          
+              // BUSCAMOS POR ID (No por nombre)
+              const matchData = dbMatches.find(m => 
+                m.idTeamOne === match.homeId && m.idTeamTwo === match.awayId
+              );
 
-                if (matchData) {
-                  const hS = parseInt(match.homeScore);
-                  const aS = parseInt(match.awayScore);
-      
-                  // Lógica de ganador usando los IDs de tu tabla
-                  let idWinner = null; // En SQL es mejor null si no hay ganador (empate)
-                  if (hS > aS) idWinner = matchData.idTeamOne;
-                  else if (aS > hS) idWinner = matchData.idTeamTwo;
+              if (matchData) {
+                const hS = parseInt(match.homeScore);
+                const aS = parseInt(match.awayScore);
+                let idWinner = null;
+                if (hS > aS) idWinner = match.homeId;
+                else if (aS > hS) idWinner = match.awayId;
 
-                  predictionsToSave.push({
-                    idUser: userId, 
-                    idPool: realPoolId, 
-                    idMatch: matchData.idMatch, // Usamos idMatch (el nombre de tu tabla)
-                    scoreHome: hS,
-                    scoreAway: aS,
-                    idTeamWinner: idWinner
-                  });
-                }
+                predictionsToSave.push({
+                  idUser: userId,
+                  idPool: poolData.idPool,
+                  idMatch: matchData.idMatch, // ID REAL DE LA TABLA MATCHES
+                  scoreHome: hS,
+                  scoreAway: aS,
+                  idTeamWinner: idWinner
+                });
               }
-            });
+            }
+          }
         }
 
         if (predictionsToSave.length === 0) {
-          alert("No hay resultados completos para guardar.");
-          setLoading(false);
+          alert("Rellena al menos un partido completo.");
           return;
         }
 
-        // 5. Insertar o actualizar en la tabla Predictions
+        // 4. Upsert (Inserta nuevos o actualiza si ya existen)
         const { error: saveError } = await supabase
           .from('Predictions')
           .upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
 
         if (saveError) throw saveError;
-
-        alert("¡Simulación guardada correctamente!");
+        alert("¡Predicciones guardadas con éxito!");
 
       } catch (err: any) {
-        console.error("Error al guardar:", err.message);
         alert("Error: " + err.message);
       } finally {
         setLoading(false);
