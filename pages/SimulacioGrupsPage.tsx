@@ -237,64 +237,148 @@ const SimulacioGrupsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
+      {/* --- HEADER --- */}
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
             <Logo />
+            <div className="h-8 w-px bg-brand-blue-light hidden md:block"></div>
             <div>
-              <h1 className="text-xl font-black uppercase">Simulación — Grupos</h1>
+              <h1 className="text-xl font-black uppercase tracking-tight">Simulación — Fase de Grupos</h1>
               <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
             </div>
           </div>
+
           <div className="flex flex-col items-end gap-2 w-full md:w-auto">
-            <div className="flex justify-between w-full text-[10px] font-bold uppercase text-brand-text-dim">
+            <div className="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest text-brand-text-dim">
               <span>Progreso</span>
-              <span>{completedMatches} / {totalMatches}</span>
+              <span>{completedMatches} / {totalMatches} partidos</span>
             </div>
             <div className="w-full md:w-64 h-2 bg-brand-blue-light rounded-full overflow-hidden">
-              <div className="h-full bg-brand-green transition-all" style={{ width: `${progress}%` }}></div>
+              <div 
+                className="h-full bg-brand-green transition-all duration-500" 
+                style={{ width: `${progress}%` }}
+              ></div>
             </div>
           </div>
+
           <div className="flex gap-3">
-            <button onClick={handleSavePredictions} className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light">Guardar</button>
-            <button onClick={() => navigate('/simulacio-final')} disabled={completedMatches < totalMatches} className={`px-6 py-2 rounded-lg text-xs font-black uppercase ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}>Siguiente →</button>
+            <button 
+              onClick={handleSavePredictions}
+              disabled={loading}
+              className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all disabled:opacity-50"
+            >
+              {loading ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button 
+              onClick={() => navigate('/simulacio-final')}
+              disabled={completedMatches < totalMatches}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
+            >
+              Siguiente fase →
+            </button>
           </div>
         </div>
       </header>
 
-      <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto">
+      {/* --- SELECTOR DE GRUPOS --- */}
+      <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex px-6">
           {groups.map(g => (
-            <button key={g.id} onClick={() => setActiveGroupId(g.id)} className={`px-6 py-4 text-sm font-black border-b-2 ${activeGroupId === g.id ? 'border-brand-green text-brand-green bg-brand-green/5' : 'border-transparent text-brand-text-dim hover:text-white'}`}>GRUPO {g.id}</button>
+            <button
+              key={g.id}
+              onClick={() => setActiveGroupId(g.id)}
+              className={`px-6 py-4 text-sm font-black transition-all border-b-2 whitespace-nowrap ${activeGroupId === g.id ? 'border-brand-green text-brand-green bg-brand-green/5' : 'border-transparent text-brand-text-dim hover:text-white'}`}
+            >
+              GRUPO {g.id}
+            </button>
           ))}
         </div>
       </nav>
 
+      {/* --- CONTENIDO PRINCIPAL --- */}
       <main className="flex-grow p-4 md:p-10 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-10">
+          
+          {/* COLUMNA IZQUIERDA: PARTIDOS */}
           <section className="space-y-6">
-            <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
+              <span className="text-xs font-bold text-brand-text-dim uppercase tracking-widest">Fase de Grupos</span>
+            </div>
+
             <div className="space-y-4">
               {activeGroup.matches.map(match => (
                 <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl">
                   <div className="flex items-center justify-between gap-4">
+                    
+                    {/* Home Team */}
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img src={match.homeFlag} alt="" className="w-14 h-10 object-contain rounded-xl" />
-                      <span className="font-bold text-[10px] uppercase">{match.home}</span>
+                      <img 
+                        src={match.homeFlag} 
+                        alt="" 
+                        className="w-14 h-10 object-contain rounded-xl shadow-sm"
+                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
+                      />
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.home}</span>
                     </div>
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="flex items-center gap-3">
-                        <input type="number" value={match.homeScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)} className={`w-12 h-14 bg-brand-blue-deep border rounded-xl text-center text-xl font-black ${match.isLocked ? 'opacity-40 grayscale' : 'border-brand-blue-light'}`} />
-                        <span className="text-brand-text-dim font-black">-</span>
-                        <input type="number" value={match.awayScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)} className={`w-12 h-14 bg-brand-blue-deep border rounded-xl text-center text-xl font-black ${match.isLocked ? 'opacity-40 grayscale' : 'border-brand-blue-light'}`} />
+
+                    {/* Marcador e Info Temporal */}
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={match.homeScore}
+                          disabled={match.isLocked}
+                          onKeyDown={(e) => ["-", ".", ",", "e"].includes(e.key) && e.preventDefault()}
+                          onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
+                          className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none 
+                            ${match.isLocked ? 'opacity-40 cursor-not-allowed border-gray-600 grayscale' : 'border-brand-blue-light'}`}
+                        />
+
+                        <span className="text-brand-text-dim font-black text-xl">-</span>
+
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={match.awayScore}
+                          disabled={match.isLocked}
+                          onKeyDown={(e) => ["-", ".", ",", "e"].includes(e.key) && e.preventDefault()}
+                          onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
+                          className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none 
+                            ${match.isLocked ? 'opacity-40 cursor-not-allowed border-gray-600 grayscale' : 'border-brand-blue-light'}`}
+                        />
                       </div>
-                      <div className="text-[9px] font-bold uppercase tracking-widest">
-                        {match.isLocked ? <span className="text-red-400">🔒 Cerrado</span> : <span className="text-brand-text-dim">{new Date(match.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+
+                      {/* Info Fecha y Hora */}
+                      <div className="text-[10px] font-bold uppercase tracking-widest flex flex-col items-center">
+                        {match.isLocked ? (
+                          <span className="text-red-400/80 flex items-center gap-1">🔒 Cerrado</span>
+                        ) : (
+                          <>
+                            <span className="text-brand-text-dim">
+                              {new Date(match.startTime).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            </span>
+                            <span className="text-brand-green">
+                              {new Date(match.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
+
+                    {/* Away Team */}
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain rounded-xl" />
-                      <span className="font-bold text-[10px] uppercase">{match.away}</span>
+                      <img 
+                        src={match.awayFlag} 
+                        alt="" 
+                        className="w-14 h-10 object-contain rounded-xl shadow-sm"
+                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
+                      />
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.away}</span>
                     </div>
                   </div>
                 </div>
@@ -302,38 +386,66 @@ const SimulacioGrupsPage: React.FC = () => {
             </div>
           </section>
 
+          {/* COLUMNA DERECHA: TABLA COMPLETA */}
           <section className="space-y-6">
-            <h2 className="text-2xl font-black uppercase">Clasificación</h2>
+            <h2 className="text-2xl font-black uppercase">Clasificación Grupo {activeGroupId}</h2>
+
             <div className="bg-brand-blue-mid border border-brand-blue-light rounded-2xl overflow-hidden shadow-2xl">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase text-brand-text-dim">
-                    <th className="px-4 py-4 text-center">Pos</th>
-                    <th className="px-4 py-4">Equipo</th>
-                    <th className="px-2 py-4 text-center">PJ</th>
-                    <th className="px-2 py-4 text-center">Pts</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-blue-light">
-                  {activeTable.map((team, i) => (
-                    <tr key={team.name} className={i < 2 ? 'bg-brand-green/5' : ''}>
-                      <td className="px-4 py-4 text-center font-bold text-xs">{i + 1}</td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <img src={team.flag} alt="" className="w-6 h-4 object-contain" />
-                          <span className="font-bold text-xs">{team.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
-                      <td className={`px-4 py-4 text-center font-black ${i < 2 ? 'text-brand-green' : ''}`}>{team.pts}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[500px]">
+                  <thead>
+                    <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase tracking-widest text-brand-text-dim">
+                      <th className="px-4 py-4 text-center w-12">Pos</th>
+                      <th className="px-4 py-4">Equipo</th>
+                      <th className="px-2 py-4 text-center">PJ</th>
+                      <th className="px-2 py-4 text-center">PG</th>
+                      <th className="px-2 py-4 text-center">PE</th>
+                      <th className="px-2 py-4 text-center">PP</th>
+                      <th className="px-2 py-4 text-center">GF</th>
+                      <th className="px-2 py-4 text-center">GC</th>
+                      <th className="px-2 py-4 text-center">DG</th>
+                      <th className="px-4 py-4 text-center bg-brand-blue-light/50 text-white">Pts</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-brand-blue-light">
+                    {activeTable.map((team, i) => (
+                      <tr key={team.name} className={`transition-colors ${i < 2 ? 'bg-brand-green/5' : ''}`}>
+                        <td className="px-4 py-4 text-center font-bold text-xs">{i + 1}</td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm shadow-sm" />
+                            <span className="font-bold text-xs truncate w-24">{team.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pg}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pe}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pp}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
+                        <td className={`px-2 py-4 text-center text-[10px] font-bold font-mono ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
+                          {team.dg > 0 ? `+${team.dg}` : team.dg}
+                        </td>
+                        <td className={`px-4 py-4 text-center font-black text-md ${i < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/20'}`}>
+                          {team.pts}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-3 bg-brand-blue-light/10 text-[9px] text-brand-text-dim text-center uppercase tracking-widest font-bold">
+                * Los 2 mejores equipos avanzan directamente a la siguiente ronda.
+              </div>
             </div>
           </section>
+
         </div>
       </main>
+
+      <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">
+        Porra Pro © 2026
+      </footer>
     </div>
   );
 };
