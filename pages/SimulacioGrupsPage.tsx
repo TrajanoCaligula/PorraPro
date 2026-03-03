@@ -19,12 +19,12 @@ interface TeamStats {
 }
 
 interface MatchPrediction {
-  id: string; // ID interno de la UI (ej: "A1")
-  idMatchDB?: number; // <--- El ID real de la tabla Matches
+  id: string;          // Para usarlo como 'key' en React
+  idMatchDB: number;   // El ID real de la tabla Matches en Supabase
   home: string;
   away: string;
-  homeId: number; // <--- El ID real de la tabla Teams
-  awayId: number; // <--- El ID real de la tabla Teams
+  homeId: number; 
+  awayId: number; 
   homeFlag: string;
   awayFlag: string;
   homeScore: string;
@@ -53,7 +53,7 @@ const SimulacioGrupsPage: React.FC = () => {
       setLoading(true);
 
       try {
-        // 1. Traemos los equipos para tener la lista de banderas y nombres
+        // 1. Traemos los equipos
         const { data: teams, error: teamsError } = await supabase
           .from('Teams')
           .select('idTeam, name, flag_url, group_name')
@@ -61,8 +61,7 @@ const SimulacioGrupsPage: React.FC = () => {
 
         if (teamsError) throw teamsError;
 
-        // 2. Traemos los PARTIDOS reales de la tabla Matches
-        // Hacemos join con Teams dos veces para obtener los nombres y banderas
+        // 2. Traemos los PARTIDOS con JOIN a equipos
         const { data: dbMatches, error: matchesError } = await supabase
           .from('Matches')
           .select(`
@@ -74,28 +73,28 @@ const SimulacioGrupsPage: React.FC = () => {
             homeTeam:idTeamOne (name, flag_url),
             awayTeam:idTeamTwo (name, flag_url)
           `)
-          .eq('phase', 'GROUP_STAGE'); // O 'GROUP_PHASE' según tu SQL real
+          .eq('phase', 'GROUP_STAGE');
 
         if (matchesError) throw matchesError;
 
         const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
         const formattedGroups: Group[] = letters.map(letter => {
-          // Equipos del grupo
           const teamsInGroup = teams.filter(t => t.group_name === letter);
           
-          // Partidos del grupo (filtramos los que trajimos de la DB)
+          // FILTRADO Y MAPEADO SEGURO
           const matchesInGroup = dbMatches
             .filter(m => m.group_name === letter)
-            .map((m, index) => ({
-              id: `${letter}${index + 1}`, // ID para la UI
-              idMatchDB: m.idMatch,        // ID Real de la DB
-              home: m.homeTeam.name,
-              away: m.awayTeam.name,
+            .filter(m => m.homeTeam && m.awayTeam) // <--- SEGURIDAD: Evita el error de 'name' of null
+            .map((m) => ({
+              id: m.idMatch.toString(),
+              idMatchDB: m.idMatch,
+              home: m.homeTeam?.name || 'TBD',
+              away: m.awayTeam?.name || 'TBD',
               homeId: m.idTeamOne,
               awayId: m.idTeamTwo,
-              homeFlag: m.homeTeam.flag_url || '🏳️',
-              awayFlag: m.awayTeam.flag_url || '🏳️',
+              homeFlag: m.homeTeam?.flag_url || '🏳️',
+              awayFlag: m.awayTeam?.flag_url || '🏳️',
               homeScore: '', 
               awayScore: ''
             }));
@@ -110,7 +109,7 @@ const SimulacioGrupsPage: React.FC = () => {
 
         setGroups(formattedGroups);
       } catch (error: any) {
-        console.error('Error cargando datos:', error.message);
+        console.error('Error detallado:', error.message);
       } finally {
         setLoading(false);
       }
@@ -201,34 +200,29 @@ const SimulacioGrupsPage: React.FC = () => {
         const { data: poolData } = await supabase.from('Pools').select('idPool').eq('code', poolCode).single();
         if (!poolData || !userId) throw new Error("No se encontró el usuario o la porra.");
 
-        // 2. Traemos los partidos de la DB para saber sus idMatch
-        const { data: dbMatches } = await supabase
-          .from('Matches')
-          .select('idMatch, idTeamOne, idTeamTwo')
-          .eq('phase', 'GROUP_STAGE');
-
-        if (!dbMatches) throw new Error("No se pudieron cargar los partidos de referencia.");
-
         const predictionsToSave = [];
 
         // 3. Recorremos lo que el usuario escribió en la pantalla
         // Dentro de handleSavePredictions, en el loop de matches:
-        for (const match of group.matches) {
-          if (match.homeScore !== '' && match.awayScore !== '') {
-            const hS = parseInt(match.homeScore);
-            const aS = parseInt(match.awayScore);
-            let idWinner = null;
-            if (hS > aS) idWinner = match.homeId;
-            else if (aS > hS) idWinner = match.awayId;
+        for (const group of groups) {
+          for (const match of group.matches) {
+            if (match.homeScore !== '' && match.awayScore !== '') {
+              const hS = parseInt(match.homeScore);
+              const aS = parseInt(match.awayScore);
+      
+              let idWinner = null;
+              if (hS > aS) idWinner = match.homeId;
+              else if (aS > hS) idWinner = match.awayId;
 
-            predictionsToSave.push({
-              idUser: userId,
-              idPool: poolData.idPool,
-              idMatch: match.idMatchDB, // <--- USO DIRECTO, ya no necesitas buscar en dbMatches
-              scoreHome: hS,
-              scoreAway: aS,
-              idTeamWinner: idWinner
-            });
+              predictionsToSave.push({
+                idUser: userId,
+                idPool: poolData.idPool,
+                idMatch: match.idMatchDB, // Usamos el ID que cargamos al principio
+                scoreHome: hS,
+                scoreAway: aS,
+                idTeamWinner: idWinner
+              });
+            }
           }
         }
 
@@ -253,7 +247,9 @@ const SimulacioGrupsPage: React.FC = () => {
     };
 
   // --- Progreso ---
-  const totalMatches = 72;
+    const totalMatches = useMemo(() => 
+      groups.reduce((acc, g) => acc + g.matches.length, 0)
+    , [groups]);
   const completedMatches = useMemo(() => 
     groups.reduce((acc, g) => acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0)
   , [groups]);
