@@ -202,9 +202,10 @@ const SimulacioGrupsPage: React.FC = () => {
             if (match.homeScore !== '' && match.awayScore !== '') {
           
               // BUSCAMOS POR ID (No por nombre)
-              const matchData = dbMatches.find(m => 
-                m.idTeamOne === match.homeId && m.idTeamTwo === match.awayId
-              );
+                const matchData = dbMatches.find(m => 
+                  (m.idTeamOne === match.homeId && m.idTeamTwo === match.awayId) || 
+                  (m.idTeamOne === match.awayId && m.idTeamTwo === match.homeId)
+                );
 
               if (matchData) {
                 const hS = parseInt(match.homeScore);
