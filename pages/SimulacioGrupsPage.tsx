@@ -51,7 +51,7 @@ const SimulacioGrupsPage: React.FC = () => {
         // 1. Nota: Usamos "Teams" con T mayúscula para que coincida con tu SQL
         const { data: teams, error } = await supabase
           .from('Teams') 
-          .select('id, name, flag_url, group_name')
+          .select('idTeam, name, flag_url, group_name')
           .order('group_name', { ascending: true });
 
         if (error) {
@@ -202,7 +202,7 @@ const SimulacioGrupsPage: React.FC = () => {
         // 3. Obtener los partidos de la DB para cruzar IDs
         const { data: dbMatches, error: matchesError } = await supabase
           .from('Matches')
-          .select('id, home_team_name, away_team_name, home_team_id, away_team_id')
+          .select('idMatch, home_team_name, away_team_name, home_team_id, away_team_id')
           .eq('phase', 'GROUP_STAGE');
 
         if (matchesError || !dbMatches) throw new Error("Error al cargar partidos de referencia.");
