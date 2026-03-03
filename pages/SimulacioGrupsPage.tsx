@@ -263,7 +263,7 @@ const SimulacioGrupsPage: React.FC = () => {
   // --- Progreso ---
 
     // Solo contamos los partidos que realmente se muestran (los que tienen ambos equipos)
-    const totalMatchesEnPantalla = useMemo(() => {
+    const totalMatches = useMemo(() => {
       return groups.reduce((acc, grupo) => acc + grupo.matches.length, 0);
     }, [groups]);
 
