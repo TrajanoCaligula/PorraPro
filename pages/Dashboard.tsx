@@ -137,7 +137,7 @@ const Dashboard = () => {
             /* TODA LA FILA ES UN LINK A LA SIMULACIÓN */
             <Link 
               key={porra.id} 
-              to={`/simulacion-grupos/${porra.code}`} 
+              to={`/simulacion-grupos/${porra.codigo}`} 
               className="block space-y-6 animate-fadeIn group/card hover:opacity-90 transition-all"
             >
               <div className="flex items-center justify-between px-2 border-l-4 border-brand-green pl-4 group-hover/card:border-white transition-colors">
