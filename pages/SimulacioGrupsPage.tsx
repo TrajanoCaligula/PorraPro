@@ -49,60 +49,75 @@ const SimulacioGrupsPage: React.FC = () => {
 
   // --- Carga de datos de Supabase ---
   useEffect(() => {
-      const fetchTeamsData = async () => {
-        setLoading(true);
-    
-        // 1. Nota: Usamos "Teams" con T mayúscula para que coincida con tu SQL
-        const { data: teams, error } = await supabase
-          .from('Teams') 
+    const fetchInitialData = async () => {
+      setLoading(true);
+
+      try {
+        // 1. Traemos los equipos para tener la lista de banderas y nombres
+        const { data: teams, error: teamsError } = await supabase
+          .from('Teams')
           .select('idTeam, name, flag_url, group_name')
           .order('group_name', { ascending: true });
 
-        if (error) {
-          console.error('Error detallado de Supabase:', error.message);
-          setLoading(false);
-          return;
-        }
+        if (teamsError) throw teamsError;
+
+        // 2. Traemos los PARTIDOS reales de la tabla Matches
+        // Hacemos join con Teams dos veces para obtener los nombres y banderas
+        const { data: dbMatches, error: matchesError } = await supabase
+          .from('Matches')
+          .select(`
+            idMatch,
+            idTeamOne,
+            idTeamTwo,
+            group_name,
+            phase,
+            homeTeam:idTeamOne (name, flag_url),
+            awayTeam:idTeamTwo (name, flag_url)
+          `)
+          .eq('phase', 'GROUP_STAGE'); // O 'GROUP_PHASE' según tu SQL real
+
+        if (matchesError) throw matchesError;
 
         const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
-    
-        const formattedGroups: Group[] = letters.map(letter => {
-          const teamsInGroup = teams.filter(t => t.group_name === letter);
-          const matches: MatchPrediction[] = [];
 
-          if (teamsInGroup.length === 4) {
-            const pairings = [[0, 1], [2, 3], [0, 2], [1, 3], [0, 3], [1, 2]];
-            pairings.forEach((p, i) => {
-              const h = teamsInGroup[p[0]];
-              const a = teamsInGroup[p[1]];
-              matches.push({
-                id: `${letter}${i + 1}`,
-                home: h.name, 
-                away: a.name,
-                homeId: h.idTeam, // <--- GUARDAMOS EL ID REAL DE LA DB
-                awayId: a.idTeam, // <--- GUARDAMOS EL ID REAL DE LA DB
-                homeFlag: h.flag_url || '🏳️',
-                awayFlag: a.flag_url || '🏳️',
-                homeScore: '', 
-                awayScore: ''
-              });
-            });
-          }
+        const formattedGroups: Group[] = letters.map(letter => {
+          // Equipos del grupo
+          const teamsInGroup = teams.filter(t => t.group_name === letter);
+          
+          // Partidos del grupo (filtramos los que trajimos de la DB)
+          const matchesInGroup = dbMatches
+            .filter(m => m.group_name === letter)
+            .map((m, index) => ({
+              id: `${letter}${index + 1}`, // ID para la UI
+              idMatchDB: m.idMatch,        // ID Real de la DB
+              home: m.homeTeam.name,
+              away: m.awayTeam.name,
+              homeId: m.idTeamOne,
+              awayId: m.idTeamTwo,
+              homeFlag: m.homeTeam.flag_url || '🏳️',
+              awayFlag: m.awayTeam.flag_url || '🏳️',
+              homeScore: '', 
+              awayScore: ''
+            }));
 
           return {
             id: letter,
             name: `Group ${letter}`,
             teams: teamsInGroup.map(t => ({ name: t.name, flag: t.flag_url || '🏳️' })),
-            matches
+            matches: matchesInGroup
           };
         });
 
         setGroups(formattedGroups);
+      } catch (error: any) {
+        console.error('Error cargando datos:', error.message);
+      } finally {
         setLoading(false);
-      };
+      }
+    };
 
-      fetchTeamsData();
-    }, []);
+    fetchInitialData();
+  }, []);
 
   // --- Lógica de la Tabla de Posiciones ---
   const calculateTable = (group: Group): TeamStats[] => {
@@ -197,33 +212,23 @@ const SimulacioGrupsPage: React.FC = () => {
         const predictionsToSave = [];
 
         // 3. Recorremos lo que el usuario escribió en la pantalla
-        for (const group of groups) {
-          for (const match of group.matches) {
-            if (match.homeScore !== '' && match.awayScore !== '') {
-          
-              // BUSCAMOS POR ID (No por nombre)
-                const matchData = dbMatches.find(m => 
-                  (m.idTeamOne === match.homeId && m.idTeamTwo === match.awayId) || 
-                  (m.idTeamOne === match.awayId && m.idTeamTwo === match.homeId)
-                );
+        // Dentro de handleSavePredictions, en el loop de matches:
+        for (const match of group.matches) {
+          if (match.homeScore !== '' && match.awayScore !== '') {
+            const hS = parseInt(match.homeScore);
+            const aS = parseInt(match.awayScore);
+            let idWinner = null;
+            if (hS > aS) idWinner = match.homeId;
+            else if (aS > hS) idWinner = match.awayId;
 
-              if (matchData) {
-                const hS = parseInt(match.homeScore);
-                const aS = parseInt(match.awayScore);
-                let idWinner = null;
-                if (hS > aS) idWinner = match.homeId;
-                else if (aS > hS) idWinner = match.awayId;
-
-                predictionsToSave.push({
-                  idUser: userId,
-                  idPool: poolData.idPool,
-                  idMatch: matchData.idMatch, // ID REAL DE LA TABLA MATCHES
-                  scoreHome: hS,
-                  scoreAway: aS,
-                  idTeamWinner: idWinner
-                });
-              }
-            }
+            predictionsToSave.push({
+              idUser: userId,
+              idPool: poolData.idPool,
+              idMatch: match.idMatchDB, // <--- USO DIRECTO, ya no necesitas buscar en dbMatches
+              scoreHome: hS,
+              scoreAway: aS,
+              idTeamWinner: idWinner
+            });
           }
         }
 
