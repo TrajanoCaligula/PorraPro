@@ -65,7 +65,7 @@ const App: React.FC = () => {
             } 
           />
           <Route 
-              path="/simulacion-grupos/:idPool" 
+              path="/simulacion-grupos/:poolCode" 
               element={
                 <ProtectedRoute>
                   <WithNavigation><SimulacioGrupsPage /></WithNavigation>
@@ -73,7 +73,7 @@ const App: React.FC = () => {
               } 
             />
           <Route 
-            path="/simulacion-finales/:idPool" 
+            path="/simulacion-finales/:poolCode" 
             element={
               <ProtectedRoute>
                 <WithNavigation><SimulacioFinalPage /></WithNavigation>
