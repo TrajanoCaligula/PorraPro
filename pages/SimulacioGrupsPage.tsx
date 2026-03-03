@@ -263,9 +263,7 @@ const SimulacioGrupsPage: React.FC = () => {
   // --- Progreso ---
 
     // Solo contamos los partidos que realmente se muestran (los que tienen ambos equipos)
-    const totalMatches = useMemo(() => {
-      return groups.reduce((acc, grupo) => acc + grupo.matches.length, 0);
-    }, [groups]);
+    const totalMatches = 48;
 
     // Contamos los que tienen score (esto ya lo hacías bien, pero ahora sobre el total correcto)
     const completedMatches = useMemo(() => 
