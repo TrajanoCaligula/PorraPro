@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 
 // --- Interfaces ---
 interface TeamStats {
+  id?: number; 
   name: string;
   flag: string;
   pj: number;
@@ -50,7 +51,7 @@ const SimulacioGrupsPage: React.FC = () => {
         // 1. Nota: Usamos "Teams" con T mayúscula para que coincida con tu SQL
         const { data: teams, error } = await supabase
           .from('Teams') 
-          .select('name, flag_url, group_name')
+          .select('id, name, flag_url, group_name')
           .order('group_name', { ascending: true });
 
         if (error) {
@@ -169,6 +170,99 @@ const SimulacioGrupsPage: React.FC = () => {
     })));
   };
 
+  // --- Save ---
+  const handleSavePredictions = async () => {
+      setLoading(true);
+
+      try {
+        // 1. Obtener datos de contexto
+        const userId = localStorage.getItem('uuid');
+        // Obtenemos el código de la URL (el último segmento)
+        const poolCode = window.location.pathname.split('/').filter(Boolean).pop();
+
+        if (!userId || !poolCode) {
+          alert("Error: No se encontró el usuario o el código de la porra.");
+          setLoading(false);
+          return;
+        }
+
+        // 2. BUSCAR EL ID DE LA POOL usando el código
+        const { data: poolData, error: poolError } = await supabase
+          .from('Pools')
+          .select('idPool')
+          .eq('code', poolCode)
+          .single();
+
+        if (poolError || !poolData) {
+          throw new Error("No se pudo encontrar la porra con ese código.");
+        }
+
+        const realPoolId = poolData.idPool;
+
+        // 3. Obtener los partidos de la DB para cruzar IDs
+        const { data: dbMatches, error: matchesError } = await supabase
+          .from('Matches')
+          .select('id, home_team_name, away_team_name, home_team_id, away_team_id')
+          .eq('phase', 'GROUP_STAGE');
+
+        if (matchesError || !dbMatches) throw new Error("Error al cargar partidos de referencia.");
+
+        const predictionsToSave = [];
+
+        // 4. Recorrer todos los grupos y partidos de la UI
+        for (const group of groups) {
+          group.matches.forEach(match => {
+            // Solo guardamos si ambos campos tienen valor
+            if (match.homeScore !== '' && match.awayScore !== '') {
+              const matchData = dbMatches.find(m => 
+                m.home_team_name === match.home && m.away_team_name === match.away
+              );
+
+              if (matchData) {
+                const hS = parseInt(match.homeScore);
+                const aS = parseInt(match.awayScore);
+            
+                // Lógica de ganador
+                let idWinner = 0;
+                if (hS > aS) idWinner = matchData.home_team_id;
+                else if (aS > hS) idWinner = matchData.away_team_id;
+
+                predictionsToSave.push({
+                  idUser: userId, // Supabase UUID
+                  idPool: realPoolId, // El ID bigint que acabamos de buscar
+                  idMatch: matchData.id,
+                  scoreHome: hS,
+                  scoreAway: aS,
+                  idTeamWinner: idWinner
+                });
+              }
+            }
+          });
+        }
+
+        if (predictionsToSave.length === 0) {
+          alert("No hay resultados completos para guardar.");
+          setLoading(false);
+          return;
+        }
+
+        // 5. Insertar o actualizar en la tabla Predictions
+        const { error: saveError } = await supabase
+          .from('Predictions')
+          .upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
+
+        if (saveError) throw saveError;
+
+        alert("¡Simulación guardada correctamente!");
+
+      } catch (err: any) {
+        console.error("Error al guardar:", err.message);
+        alert("Error: " + err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
   // --- Progreso ---
   const totalMatches = 72;
   const completedMatches = useMemo(() => 
@@ -216,8 +310,12 @@ const SimulacioGrupsPage: React.FC = () => {
           </div>
 
           <div className="flex gap-3">
-            <button className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all">
-              Guardar
+            <button 
+              onClick={handleSavePredictions}
+              disabled={loading}
+              className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all disabled:opacity-50"
+            >
+              {loading ? 'Guardando...' : 'Guardar'}
             </button>
             <button 
               onClick={() => navigate('/simulacio-final')}
