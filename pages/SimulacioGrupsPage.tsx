@@ -261,13 +261,20 @@ const SimulacioGrupsPage: React.FC = () => {
     };
 
   // --- Progreso ---
+
+    // Solo contamos los partidos que realmente se muestran (los que tienen ambos equipos)
     const totalMatches = useMemo(() => 
       groups.reduce((acc, g) => acc + g.matches.length, 0)
     , [groups]);
-  const completedMatches = useMemo(() => 
-    groups.reduce((acc, g) => acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0)
-  , [groups]);
-  const progress = (completedMatches / totalMatches) * 100;
+
+    // Contamos los que tienen score (esto ya lo hacías bien, pero ahora sobre el total correcto)
+    const completedMatches = useMemo(() => 
+      groups.reduce((acc, g) => 
+        acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0)
+    , [groups]);
+
+    // Evitamos división por cero por si acaso
+    const progress = totalMatches > 0 ? (completedMatches / totalMatches) * 100 : 0;
 
   // --- Render de Carga ---
   if (loading || !activeGroup) {
