@@ -49,94 +49,94 @@ const SimulacioGrupsPage: React.FC = () => {
 
   // --- Carga de datos de Supabase ---
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoading(true);
+      const fetchInitialData = async () => {
+        setLoading(true);
 
-      try {
-      const userId = localStorage.getItem('user_id');
-        
-        // Buscamos directamente en las participaciones del usuario
-          // Filtrando por el código de la porra (que está en la tabla relacionada 'Pools')
+        try {
+          const userId = localStorage.getItem('user_id');
+      
+          // 1. VALIDACIÓN DE PERTENENCIA
           const { data: participation, error: partError } = await supabase
             .from('PoolParticipations')
-            .select(`
-              idPool,
-              Pools!inner (code)
-            `)
+            .select(`idPool, Pools!inner (code)`)
             .eq('idUser', userId)
-            .eq('Pools.code', poolCode) // Filtramos por el string de la URL
+            .eq('Pools.code', poolCode)
             .single();
 
           if (partError || !participation) {
-            console.error("Usuario no autorizado para esta porra");
             navigate('/dashboard');
             return;
           }
 
-        // 1. Traemos los equipos
-        const { data: teams, error: teamsError } = await supabase
-          .from('Teams')
-          .select('idTeam, name, flag_url, group_name')
-          .order('group_name', { ascending: true });
+          const activePoolId = participation.idPool;
 
-        if (teamsError) throw teamsError;
+          // 2. CARGA DE DATOS (Equipos y Partidos)
+          const [teamsRes, matchesRes, predictionsRes] = await Promise.all([
+            supabase.from('Teams').select('idTeam, name, flag_url, group_name').order('group_name', { ascending: true }),
+            supabase.from('Matches').select(`
+              idMatch, idTeamOne, idTeamTwo, group_name, phase,
+              homeTeam:idTeamOne (name, flag_url),
+              awayTeam:idTeamTwo (name, flag_url)
+            `).eq('phase', 'GROUP_STAGE'),
+            // 3. RECUPERAR PREDICCIONES EXISTENTES
+            supabase.from('Predictions')
+              .select('idMatch, scoreHome, scoreAway')
+              .eq('idUser', userId)
+              .eq('idPool', activePoolId)
+          ]);
 
-        // 2. Traemos los PARTIDOS con JOIN a equipos
-        const { data: dbMatches, error: matchesError } = await supabase
-          .from('Matches')
-          .select(`
-            idMatch,
-            idTeamOne,
-            idTeamTwo,
-            group_name,
-            phase,
-            homeTeam:idTeamOne (name, flag_url),
-            awayTeam:idTeamTwo (name, flag_url)
-          `)
-          .eq('phase', 'GROUP_STAGE');
+          if (teamsRes.error) throw teamsRes.error;
+          if (matchesRes.error) throw matchesRes.error;
 
-        if (matchesError) throw matchesError;
+          const teams = teamsRes.data;
+          const dbMatches = matchesRes.data;
+          const existingPredictions = predictionsRes.data || [];
 
-        const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+          const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-        const formattedGroups: Group[] = letters.map(letter => {
-          const teamsInGroup = teams.filter(t => t.group_name === letter);
-          
-          // FILTRADO Y MAPEADO SEGURO
-          const matchesInGroup = dbMatches
-            .filter(m => m.group_name === letter)
-            .filter(m => m.homeTeam && m.awayTeam) // <--- SEGURIDAD: Evita el error de 'name' of null
-            .map((m) => ({
-              id: m.idMatch.toString(),
-              idMatchDB: m.idMatch,
-              home: m.homeTeam?.name || 'TBD',
-              away: m.awayTeam?.name || 'TBD',
-              homeId: m.idTeamOne,
-              awayId: m.idTeamTwo,
-              homeFlag: m.homeTeam?.flag_url || '🏳️',
-              awayFlag: m.awayTeam?.flag_url || '🏳️',
-              homeScore: '', 
-              awayScore: ''
-            }));
+          const formattedGroups: Group[] = letters.map(letter => {
+            const teamsInGroup = teams.filter(t => t.group_name === letter);
+        
+            const matchesInGroup = dbMatches
+              .filter(m => m.group_name === letter)
+              .filter(m => m.homeTeam && m.awayTeam)
+              .map((m) => {
+                // BUSCAR SI ESTE PARTIDO YA TIENE PREDICCIÓN
+                const savedPred = existingPredictions.find(p => p.idMatch === m.idMatch);
 
-          return {
-            id: letter,
-            name: `Group ${letter}`,
-            teams: teamsInGroup.map(t => ({ name: t.name, flag: t.flag_url || '🏳️' })),
-            matches: matchesInGroup
-          };
-        });
+                return {
+                  id: m.idMatch.toString(),
+                  idMatchDB: m.idMatch,
+                  home: m.homeTeam?.name || 'TBD',
+                  away: m.awayTeam?.name || 'TBD',
+                  homeId: m.idTeamOne,
+                  awayId: m.idTeamTwo,
+                  homeFlag: m.homeTeam?.flag_url || '🏳️',
+                  awayFlag: m.awayTeam?.flag_url || '🏳️',
+                  // ASIGNAR VALORES RECUPERADOS O VACÍO
+                  homeScore: savedPred ? savedPred.scoreHome.toString() : '', 
+                  awayScore: savedPred ? savedPred.scoreAway.toString() : ''
+                };
+              });
 
-        setGroups(formattedGroups);
-      } catch (error: any) {
-        console.error('Error detallado:', error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+            return {
+              id: letter,
+              name: `Group ${letter}`,
+              teams: teamsInGroup.map(t => ({ name: t.name, flag: t.flag_url || '🏳️' })),
+              matches: matchesInGroup
+            };
+          });
 
-    fetchInitialData();
-  }, []);
+          setGroups(formattedGroups);
+        } catch (error: any) {
+          console.error('Error al cargar datos:', error.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchInitialData();
+    }, [poolCode, navigate]);
 
   // --- Lógica de la Tabla de Posiciones ---
   const calculateTable = (group: Group): TeamStats[] => {
@@ -213,52 +213,46 @@ const SimulacioGrupsPage: React.FC = () => {
   const handleSavePredictions = async () => {
       setLoading(true);
       const userId = localStorage.getItem('user_id');
-      const poolCode = window.location.pathname.split('/').filter(Boolean).pop();
 
       try {
-        // 1. Validaciones de contexto (Pool y User)
-        const { data: poolData } = await supabase.from('Pools').select('idPool').eq('code', poolCode).single();
-        if (!poolData || !userId) throw new Error("No se encontró el usuario o la porra.");
+        // Obtenemos el idPool real a partir del código
+        const { data: poolData } = await supabase
+          .from('Pools')
+          .select('idPool')
+          .eq('code', poolCode)
+          .single();
 
-        const predictionsToSave = [];
+        if (!poolData || !userId) throw new Error("Sesión no válida");
 
-        // 3. Recorremos lo que el usuario escribió en la pantalla
-        // Dentro de handleSavePredictions, en el loop de matches:
-        for (const group of groups) {
-          for (const match of group.matches) {
-            if (match.homeScore !== '' && match.awayScore !== '') {
-              const hS = parseInt(match.homeScore);
-              const aS = parseInt(match.awayScore);
-      
-              let idWinner = null;
-              if (hS > aS) idWinner = match.homeId;
-              else if (aS > hS) idWinner = match.awayId;
-
-              predictionsToSave.push({
-                idUser: userId,
-                idPool: poolData.idPool,
-                idMatch: match.idMatchDB, // Usamos el ID que cargamos al principio
-                scoreHome: hS,
-                scoreAway: aS,
-                idTeamWinner: idWinner
-              });
-            }
-          }
-        }
+        const predictionsToSave = groups.flatMap(group => 
+          group.matches
+            .filter(m => m.homeScore !== '' && m.awayScore !== '')
+            .map(match => ({
+              idUser: userId,
+              idPool: poolData.idPool,
+              idMatch: match.idMatchDB,
+              scoreHome: parseInt(match.homeScore),
+              scoreAway: parseInt(match.awayScore),
+              idTeamWinner: parseInt(match.homeScore) > parseInt(match.awayScore) 
+                ? match.homeId 
+                : parseInt(match.awayScore) > parseInt(match.homeScore) 
+                  ? match.awayId 
+                  : null
+            }))
+        );
 
         if (predictionsToSave.length === 0) {
-          alert("Rellena al menos un partido completo.");
+          alert("No hay cambios nuevos para guardar.");
+          setLoading(false);
           return;
         }
 
-        // 4. Upsert (Inserta nuevos o actualiza si ya existen)
         const { error: saveError } = await supabase
           .from('Predictions')
           .upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
 
         if (saveError) throw saveError;
-        alert("¡Predicciones guardadas con éxito!");
-
+        alert("¡Predicciones sincronizadas!");
       } catch (err: any) {
         alert("Error: " + err.message);
       } finally {
