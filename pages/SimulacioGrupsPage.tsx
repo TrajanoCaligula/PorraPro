@@ -274,7 +274,7 @@ const SimulacioGrupsPage: React.FC = () => {
               onClick={async () => {
                 const saved = await handleSavePredictions(false);
                 if (saved) {
-                  navigate(`/simulacio-final/${poolCode}`);
+                  navigate(`/simulacion-finales/${poolCode}`);
                 }
               }}
               disabled={completedMatches < totalMatches || loading}
