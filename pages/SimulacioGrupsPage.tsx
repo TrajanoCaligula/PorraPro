@@ -16,7 +16,8 @@ interface TeamStats {
   gc: number;
   dg: number;
   pts: number;
-  headToHead: Record<string, { gf: number; gc: number }>; // Nova propietat per desempat
+  headToHead: Record<string, { gf: number; gc: number }>;
+  needsFairPlay?: boolean; // Propiedad para marcar empate técnico
 }
 
 interface MatchPrediction {
@@ -136,85 +137,83 @@ const SimulacioGrupsPage: React.FC = () => {
     fetchInitialData();
   }, [poolCode, navigate]);
 
-  // --- Lògica de Càlcul amb Desempat Mundial 2026 ---
+  // --- Lógica de Cálculo con Desempate Mundial 2026 ---
   const calculateTable = (group: Group): TeamStats[] => {
-      const stats: Record<string, TeamStats> = {};
-  
-      // Inicializar equipos
-      group.teams.forEach(t => {
-        stats[t.name] = { 
-          name: t.name, flag: t.flag, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0,
-          headToHead: {} 
-        };
-      });
+    const stats: Record<string, TeamStats> = {};
 
-      // Procesar partidos
-      group.matches.forEach(m => {
-        const hS = parseInt(m.homeScore);
-        const aS = parseInt(m.awayScore);
+    group.teams.forEach(t => {
+      stats[t.name] = { 
+        name: t.name, flag: t.flag, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0,
+        headToHead: {} 
+      };
+    });
 
-        // Solo calculamos si AMBOS campos tienen números
-        if (!isNaN(hS) && !isNaN(aS)) {
-          const home = stats[m.home];
-          const away = stats[m.away];
-          if (!home || !away) return;
-      
-          home.pj++; away.pj++;
-          home.gf += hS; home.gc += aS;
-          away.gf += aS; away.gc += hS;
+    group.matches.forEach(m => {
+      const hS = parseInt(m.homeScore);
+      const aS = parseInt(m.awayScore);
 
-          // Guardar para Head-to-Head
-          if (!home.headToHead[m.away]) home.headToHead[m.away] = { gf: 0, gc: 0 };
-          if (!away.headToHead[m.home]) away.headToHead[m.home] = { gf: 0, gc: 0 };
-          home.headToHead[m.away].gf += hS;
-          home.headToHead[m.away].gc += aS;
-          away.headToHead[m.home].gf += aS;
-          away.headToHead[m.home].gc += hS;
+      if (!isNaN(hS) && !isNaN(aS)) {
+        const home = stats[m.home];
+        const away = stats[m.away];
+        if (!home || !away) return;
+    
+        home.pj++; away.pj++;
+        home.gf += hS; home.gc += aS;
+        away.gf += aS; away.gc += hS;
 
-          // Lógica de puntos y resultados (Aquí es donde se define PG, PE, PP)
-          if (hS > aS) { 
-            home.pg++; home.pts += 3; 
-            away.pp++; 
-          } else if (hS < aS) { 
-            away.pg++; away.pts += 3; 
-            home.pp++; 
-          } else { 
-            home.pe++; away.pe++; 
-            home.pts += 1; away.pts += 1; 
-          }
-        }
-      });
+        if (!home.headToHead[m.away]) home.headToHead[m.away] = { gf: 0, gc: 0 };
+        if (!away.headToHead[m.home]) away.headToHead[m.home] = { gf: 0, gc: 0 };
+        home.headToHead[m.away].gf += hS;
+        home.headToHead[m.away].gc += aS;
+        away.headToHead[m.home].gf += aS;
+        away.headToHead[m.home].gc += hS;
 
-      // --- Dentro de calculateTable ---
+        if (hS > aS) { home.pg++; home.pts += 3; away.pp++; } 
+        else if (hS < aS) { away.pg++; away.pts += 3; home.pp++; } 
+        else { home.pe++; away.pe++; home.pts += 1; away.pts += 1; }
+      }
+    });
 
-        return Object.values(stats).sort((a, b) => {
-          // 1. Puntos
-          if (b.pts !== a.pts) return b.pts - a.pts;
+    // Ordenación según criterios FIFA
+    const sorted = Object.values(stats).sort((a, b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      const dgA = a.gf - a.gc;
+      const dgB = b.gf - b.gc;
+      if (dgB !== dgA) return dgB - dgA;
+      if (b.gf !== a.gf) return b.gf - a.gf;
 
-          // 2. Diferencia de Goles General
-          const dgA = a.gf - a.gc;
-          const dgB = b.gf - b.gc;
-          if (dgB !== dgA) return dgB - dgA;
+      const h2h_a = a.headToHead[b.name];
+      const h2h_b = b.headToHead[a.name];
+      if (h2h_a && h2h_b) {
+        const h2hDgA = h2h_a.gf - h2h_a.gc;
+        const h2hDgB = h2h_b.gf - h2h_b.gc;
+        if (h2hDgB !== h2hDgA) return h2hDgB - h2hDgA;
+        if (h2h_b.gf !== h2h_a.gf) return h2h_b.gf - h2h_a.gf;
+      }
 
-          // 3. Goles Marcados General
-          if (b.gf !== a.gf) return b.gf - a.gf;
+      return a.name.localeCompare(b.name);
+    }).map(s => ({ ...s, dg: s.gf - s.gc }));
 
-          // 4. Enfrentamiento Directo (H2H)
-          const h2h_a = a.headToHead[b.name];
-          const h2h_b = b.headToHead[a.name];
-          if (h2h_a && h2h_b) {
-            if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
-            // Nota: Si el H2H también es empate, pasamos al siguiente
-          }
+    // Detectar si persiste el empate para marcar Fair Play
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const h2h_a = a.headToHead[b.name];
+      const h2h_b = b.headToHead[a.name];
 
-          // Si llegamos aquí, los equipos están empatados en TODO lo deportivo
-          // Marcamos ambos para Fair Play / Sorteo
-          (a as any).needsFairPlay = true;
-          (b as any).needsFairPlay = true;
+      if (
+        a.pts === b.pts && 
+        a.dg === b.dg && 
+        a.gf === b.gf &&
+        (!h2h_a || !h2h_b || (h2h_a.gf === h2h_b.gf && h2h_a.gc === h2h_b.gc))
+      ) {
+        a.needsFairPlay = true;
+        b.needsFairPlay = true;
+      }
+    }
 
-          // 5. Alfabeto (para que el orden no salte erráticamente en la UI)
-          return a.name.localeCompare(b.name);
-        }).map(s => ({ ...s, dg: s.gf - s.gc }));
+    return sorted;
+  };
 
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || null, [groups, activeGroupId]);
   const activeTable = useMemo(() => activeGroup ? calculateTable(activeGroup) : [], [activeGroup]);
@@ -287,7 +286,6 @@ const SimulacioGrupsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
-      {/* --- HEADER --- */}
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
@@ -305,138 +303,60 @@ const SimulacioGrupsPage: React.FC = () => {
               <span>{completedMatches} / {totalMatches} partidos</span>
             </div>
             <div className="w-full md:w-64 h-2 bg-brand-blue-light rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-brand-green transition-all duration-500" 
-                style={{ width: `${progress}%` }}
-              ></div>
+              <div className="h-full bg-brand-green transition-all duration-500" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
 
           <div className="flex gap-3">
-            <button 
-              onClick={() => handleSavePredictions(true)}
-              disabled={loading}
-              className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all disabled:opacity-50"
-            >
+            <button onClick={() => handleSavePredictions(true)} disabled={loading} className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all disabled:opacity-50">
               {loading ? '...' : 'Guardar'}
             </button>
             <button 
               onClick={async () => {
                 const saved = await handleSavePredictions(false);
-                if (saved) {
-                  navigate(`/simulacion-finales/${poolCode}`);
-                }
+                if (saved) navigate(`/simulacion-finales/${poolCode}`);
               }}
               disabled={completedMatches < totalMatches || loading}
-              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
-                completedMatches === totalMatches 
-                  ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' 
-                  : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
-              }`}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
             >
-              {loading ? 'Guardando...' : 'Siguiente fase →'}
+              Siguiente fase →
             </button>
           </div>
         </div>
       </header>
 
-      {/* --- SELECTOR DE GRUPOS --- */}
       <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex px-6">
           {groups.map(g => (
-            <button
-              key={g.id}
-              onClick={() => setActiveGroupId(g.id)}
-              className={`px-6 py-4 text-sm font-black transition-all border-b-2 whitespace-nowrap ${activeGroupId === g.id ? 'border-brand-green text-brand-green bg-brand-green/5' : 'border-transparent text-brand-text-dim hover:text-white'}`}
-            >
+            <button key={g.id} onClick={() => setActiveGroupId(g.id)} className={`px-6 py-4 text-sm font-black transition-all border-b-2 whitespace-nowrap ${activeGroupId === g.id ? 'border-brand-green text-brand-green bg-brand-green/5' : 'border-transparent text-brand-text-dim hover:text-white'}`}>
               GRUPO {g.id}
             </button>
           ))}
         </div>
       </nav>
 
-      {/* --- CONTENIDO PRINCIPAL --- */}
       <main className="flex-grow p-4 md:p-10 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-10">
-          
-          {/* COLUMNA IZQUIERDA: PARTIDOS */}
           <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
-              <span className="text-xs font-bold text-brand-text-dim uppercase tracking-widest">Fase de Grupos</span>
-            </div>
-
+            <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
             <div className="space-y-4">
               {activeGroup.matches.map(match => (
                 <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl">
                   <div className="flex items-center justify-between gap-4">
-                    
-                    {/* Home Team */}
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img 
-                        src={match.homeFlag} 
-                        alt="" 
-                        className="w-14 h-10 object-contain rounded-xl shadow-sm"
-                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
-                      />
-                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.home}</span>
+                      <img src={match.homeFlag} alt="" className="w-14 h-10 object-contain rounded-xl" />
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase">{match.home}</span>
                     </div>
-
-                    {/* Marcador e Info Temporal */}
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex items-center gap-2 md:gap-3">
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={match.homeScore}
-                          disabled={match.isLocked}
-                          onKeyDown={(e) => ["-", ".", ",", "e"].includes(e.key) && e.preventDefault()}
-                          onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
-                          className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none 
-                            ${match.isLocked ? 'opacity-40 cursor-not-allowed border-gray-600 grayscale' : 'border-brand-blue-light'}`}
-                        />
-
+                        <input type="number" value={match.homeScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
                         <span className="text-brand-text-dim font-black text-xl">-</span>
-
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          value={match.awayScore}
-                          disabled={match.isLocked}
-                          onKeyDown={(e) => ["-", ".", ",", "e"].includes(e.key) && e.preventDefault()}
-                          onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
-                          className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none 
-                            ${match.isLocked ? 'opacity-40 cursor-not-allowed border-gray-600 grayscale' : 'border-brand-blue-light'}`}
-                        />
-                      </div>
-
-                      <div className="text-[10px] font-bold uppercase tracking-widest flex flex-col items-center">
-                        {match.isLocked ? (
-                          <span className="text-red-400/80 flex items-center gap-1">🔒 Cerrado</span>
-                        ) : (
-                          <>
-                            <span className="text-brand-text-dim">
-                              {new Date(match.startTime).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                            </span>
-                            <span className="text-brand-green">
-                              {new Date(match.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </>
-                        )}
+                        <input type="number" value={match.awayScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
                       </div>
                     </div>
-
-                    {/* Away Team */}
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img 
-                        src={match.awayFlag} 
-                        alt="" 
-                        className="w-14 h-10 object-contain rounded-xl shadow-sm"
-                        onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/64?text=?'; }}
-                      />
-                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.away}</span>
+                      <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain rounded-xl" />
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase">{match.away}</span>
                     </div>
                   </div>
                 </div>
@@ -444,23 +364,16 @@ const SimulacioGrupsPage: React.FC = () => {
             </div>
           </section>
 
-          {/* COLUMNA DERECHA: TABLA COMPLETA */}
           <section className="space-y-6">
             <h2 className="text-2xl font-black uppercase">Clasificación Grupo {activeGroupId}</h2>
-
             <div className="bg-brand-blue-mid border border-brand-blue-light rounded-2xl overflow-hidden shadow-2xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[500px]">
                   <thead>
-                    <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase tracking-widest text-brand-text-dim">
+                    <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase text-brand-text-dim">
                       <th className="px-4 py-4 text-center w-12">Pos</th>
                       <th className="px-4 py-4">Equipo</th>
                       <th className="px-2 py-4 text-center">PJ</th>
-                      <th className="px-2 py-4 text-center">PG</th>
-                      <th className="px-2 py-4 text-center">PE</th>
-                      <th className="px-2 py-4 text-center">PP</th>
-                      <th className="px-2 py-4 text-center">GF</th>
-                      <th className="px-2 py-4 text-center">GC</th>
                       <th className="px-2 py-4 text-center">DG</th>
                       <th className="px-4 py-4 text-center bg-brand-blue-light/50 text-white">Pts</th>
                     </tr>
@@ -470,29 +383,17 @@ const SimulacioGrupsPage: React.FC = () => {
                       <tr key={team.name} className={`transition-colors ${i < 2 ? 'bg-brand-green/5' : ''}`}>
                         <td className="px-4 py-4 text-center font-bold text-xs relative">
                           {i + 1}
-                          {/* Indicador de Fair Play / Sorteo */}
-                          {(team as any).needsFairPlay && (
-                            <span 
-                              title="Empate técnico: Se decidirá por Fair Play o Sorteo" 
-                              className="absolute left-1 top-1 text-[8px] text-brand-orange animate-pulse"
-                            >
-                              ⚠️
-                            </span>
+                          {team.needsFairPlay && (
+                            <span title="Empate técnico absoluto" className="absolute left-1 top-1 text-[8px] text-brand-orange animate-pulse">⚠️</span>
                           )}
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm shadow-sm" />
-                            <span className={`font-bold text-xs truncate w-24 ${(team as any).needsFairPlay ? 'text-brand-orange' : ''}`}>
-                              {team.name}</span>
+                            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm" />
+                            <span className={`font-bold text-xs truncate w-24 ${team.needsFairPlay ? 'text-brand-orange' : ''}`}>{team.name}</span>
                           </div>
                         </td>
                         <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pg}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pe}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pp}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
                         <td className={`px-2 py-4 text-center text-[10px] font-bold font-mono ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
                           {team.dg > 0 ? `+${team.dg}` : team.dg}
                         </td>
@@ -504,32 +405,16 @@ const SimulacioGrupsPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-              
-              {/* --- CUADRO EXPLICATIVO EN CASTELLANO --- */}
-                <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
-                  <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
-                    ⚠️ Criterios de desempate (Mundial 2026)
-                  </h3>
-                  <p className="text-[10px] text-brand-text-dim leading-relaxed mb-3">
-                    En caso de empate a puntos, el orden se decide por el <strong>resultado directo</strong> entre los equipos implicados (mini-liga):
-                  </p>
-                  <ol className="text-[10px] text-brand-text-dim space-y-1 list-decimal ml-4">
-                    <li>Mayor <strong>diferencia de goles</strong> en los partidos entre los equipos empatados.</li>
-                    <li>Mayor número de <strong>goles marcados</strong> en los partidos entre los equipos empatados.</li>
-                    <li>Mejor <strong>diferencia de goles general</strong> en todos los partidos del grupo.</li>
-                    <li>Mayor número de <strong>goles marcados</strong> en toda la fase de grupos.</li>
-                    <li>Mejor conducta deportiva (puntos Fair Play).</li>
-                  </ol>
-                </div>
+              <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
+                <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">⚠️ Empate Técnico</h3>
+                <p className="text-[10px] text-brand-text-dim leading-relaxed">
+                  Si ves el icono ⚠️, los equipos están empatados en todos los criterios deportivos. La posición final se decidiría por <strong>Puntos Fair Play</strong> o <strong>Sorteo</strong>.
+                </p>
+              </div>
             </div>
           </section>
-
         </div>
       </main>
-
-      <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">
-        Porra Pro © 2026
-      </footer>
     </div>
   );
 };
