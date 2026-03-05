@@ -16,6 +16,7 @@ interface TeamStats {
   gc: number;
   dg: number;
   pts: number;
+  headToHead: Record<string, { gf: number; gc: number }>; // Nova propietat per desempat
 }
 
 interface MatchPrediction {
@@ -135,10 +136,14 @@ const SimulacioGrupsPage: React.FC = () => {
     fetchInitialData();
   }, [poolCode, navigate]);
 
+  // --- Lògica de Càlcul amb Desempat Mundial 2026 ---
   const calculateTable = (group: Group): TeamStats[] => {
     const stats: Record<string, TeamStats> = {};
     group.teams.forEach(t => {
-      stats[t.name] = { name: t.name, flag: t.flag, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0 };
+      stats[t.name] = { 
+        name: t.name, flag: t.flag, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0,
+        headToHead: {} 
+      };
     });
 
     group.matches.forEach(m => {
@@ -148,9 +153,19 @@ const SimulacioGrupsPage: React.FC = () => {
         const home = stats[m.home];
         const away = stats[m.away];
         if (!home || !away) return;
+        
         home.pj++; away.pj++;
         home.gf += hS; home.gc += aS;
         away.gf += aS; away.gc += hS;
+
+        // Guardar resultats directes per desempat
+        if (!home.headToHead[m.away]) home.headToHead[m.away] = { gf: 0, gc: 0 };
+        if (!away.headToHead[m.home]) away.headToHead[m.home] = { gf: 0, gc: 0 };
+        home.headToHead[m.away].gf += hS;
+        home.headToHead[m.away].gc += aS;
+        away.headToHead[m.home].gf += aS;
+        away.headToHead[m.home].gc += hS;
+
         if (hS > aS) { home.pg++; home.pts += 3; away.pp++; }
         else if (hS < aS) { away.pg++; away.pts += 3; home.pp++; }
         else { home.pe++; away.pe++; home.pts += 1; away.pts += 1; }
@@ -158,11 +173,50 @@ const SimulacioGrupsPage: React.FC = () => {
     });
 
     return Object.values(stats).sort((a, b) => {
+      // 1. Punts
       if (b.pts !== a.pts) return b.pts - a.pts;
+
+      // Detectar equips empatats per aplicar mini-lliga
+      const tiedTeams = Object.values(stats).filter(t => t.pts === a.pts);
+
+      if (tiedTeams.length === 2) {
+        // Desempat entre 2: Enfrontament directe
+        const h2h_a = a.headToHead[b.name];
+        const h2h_b = b.headToHead[a.name];
+        if (h2h_a && h2h_b) {
+          const diffA = h2h_a.gf - h2h_a.gc;
+          const diffB = h2h_b.gf - h2h_b.gc;
+          if (diffA !== diffB) return diffB - diffA;
+          if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
+        }
+      } else if (tiedTeams.length > 2) {
+        // Desempat entre 3+: Mini-lliga
+        const getMiniStats = (team: TeamStats) => {
+          let gf = 0, gc = 0;
+          tiedTeams.forEach(opp => {
+            if (opp.name !== team.name && team.headToHead[opp.name]) {
+              gf += team.headToHead[opp.name].gf;
+              gc += team.headToHead[opp.name].gc;
+            }
+          });
+          return { gf, diff: gf - gc };
+        };
+        const miniA = getMiniStats(a);
+        const miniB = getMiniStats(b);
+        if (miniA.diff !== miniB.diff) return miniB.diff - miniA.diff;
+        if (miniA.gf !== miniB.gf) return miniB.gf - miniA.gf;
+      }
+
+      // 3. Diferència de gols general
       const dgA = a.gf - a.gc;
       const dgB = b.gf - b.gc;
       if (dgB !== dgA) return dgB - dgA;
-      return b.gf - a.gf;
+
+      // 4. Gols marcats totals
+      if (b.gf !== a.gf) return b.gf - a.gf;
+
+      // 5. Alfabet (últim recurs)
+      return a.name.localeCompare(b.name);
     }).map(s => ({ ...s, dg: s.gf - s.gc }));
   };
 
@@ -362,7 +416,6 @@ const SimulacioGrupsPage: React.FC = () => {
                         />
                       </div>
 
-                      {/* Info Fecha y Hora */}
                       <div className="text-[10px] font-bold uppercase tracking-widest flex flex-col items-center">
                         {match.isLocked ? (
                           <span className="text-red-400/80 flex items-center gap-1">🔒 Cerrado</span>
@@ -443,8 +496,22 @@ const SimulacioGrupsPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-              <div className="p-3 bg-brand-blue-light/10 text-[9px] text-brand-text-dim text-center uppercase tracking-widest font-bold">
-                * Los 2 mejores equipos avanzan directamente a la siguiente ronda.
+              
+              {/* --- QUADRE EXPLICATIU EN CATALÀ --- */}
+              <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
+                <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
+                  ⚠️ Criteris de desempat (Mundial 2026)
+                </h3>
+                <p className="text-[10px] text-brand-text-dim leading-relaxed mb-3">
+                  En cas d'empat a punts, l'ordre es decideix pel <strong>resultat directe</strong> entre els equips implicats (mini-lliga):
+                </p>
+                <ol className="text-[10px] text-brand-text-dim space-y-1 list-decimal ml-4">
+                  <li>Millor <strong>diferència de gols</strong> en els partits entre els equips empatats.</li>
+                  <li>Major nombre de <strong>gols marcats</strong> en els partits entre els equips empatats.</li>
+                  <li>Millor <strong>diferència de gols general</strong> en tots els partits del grup.</li>
+                  <li>Major nombre de <strong>gols marcats</strong> en tota la fase de grups.</li>
+                  <li>Millor conducta esportiva (punts Fair Play).</li>
+                </ol>
               </div>
             </div>
           </section>
