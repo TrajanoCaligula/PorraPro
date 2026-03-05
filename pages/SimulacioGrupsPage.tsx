@@ -138,87 +138,76 @@ const SimulacioGrupsPage: React.FC = () => {
 
   // --- Lògica de Càlcul amb Desempat Mundial 2026 ---
   const calculateTable = (group: Group): TeamStats[] => {
-    const stats: Record<string, TeamStats> = {};
-    group.teams.forEach(t => {
-      stats[t.name] = { 
-        name: t.name, flag: t.flag, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0,
-        headToHead: {} 
-      };
-    });
+      const stats: Record<string, TeamStats> = {};
+  
+      // Inicializar equipos
+      group.teams.forEach(t => {
+        stats[t.name] = { 
+          name: t.name, flag: t.flag, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0,
+          headToHead: {} 
+        };
+      });
 
-    group.matches.forEach(m => {
-      const hS = parseInt(m.homeScore);
-      const aS = parseInt(m.awayScore);
-      if (!isNaN(hS) && !isNaN(aS)) {
-        const home = stats[m.home];
-        const away = stats[m.away];
-        if (!home || !away) return;
-        
-        home.pj++; away.pj++;
-        home.gf += hS; home.gc += aS;
-        away.gf += aS; away.gc += hS;
+      // Procesar partidos
+      group.matches.forEach(m => {
+        const hS = parseInt(m.homeScore);
+        const aS = parseInt(m.awayScore);
 
-        // Guardar resultats directes per desempat
-        if (!home.headToHead[m.away]) home.headToHead[m.away] = { gf: 0, gc: 0 };
-        if (!away.headToHead[m.home]) away.headToHead[m.home] = { gf: 0, gc: 0 };
-        home.headToHead[m.away].gf += hS;
-        home.headToHead[m.away].gc += aS;
-        away.headToHead[m.home].gf += aS;
-        away.headToHead[m.home].gc += hS;
+        // Solo calculamos si AMBOS campos tienen números
+        if (!isNaN(hS) && !isNaN(aS)) {
+          const home = stats[m.home];
+          const away = stats[m.away];
+          if (!home || !away) return;
+      
+          home.pj++; away.pj++;
+          home.gf += hS; home.gc += aS;
+          away.gf += aS; away.gc += hS;
 
-        if (hS > aS) { home.pg++; home.pts += 3; away.pp++; }
-        else if (hS < aS) { away.pg++; away.pts += 3; home.pp++; }
-        else { home.pe++; away.pe++; home.pts += 1; away.pts += 1; }
-      }
-    });
+          // Guardar para Head-to-Head
+          if (!home.headToHead[m.away]) home.headToHead[m.away] = { gf: 0, gc: 0 };
+          if (!away.headToHead[m.home]) away.headToHead[m.home] = { gf: 0, gc: 0 };
+          home.headToHead[m.away].gf += hS;
+          home.headToHead[m.away].gc += aS;
+          away.headToHead[m.home].gf += aS;
+          away.headToHead[m.home].gc += hS;
 
-    return Object.values(stats).sort((a, b) => {
-      // 1. Punts
-      if (b.pts !== a.pts) return b.pts - a.pts;
+          // Lógica de puntos y resultados (Aquí es donde se define PG, PE, PP)
+          if (hS > aS) { 
+            home.pg++; home.pts += 3; 
+            away.pp++; 
+          } else if (hS < aS) { 
+            away.pg++; away.pts += 3; 
+            home.pp++; 
+          } else { 
+            home.pe++; away.pe++; 
+            home.pts += 1; away.pts += 1; 
+          }
+        }
+      });
 
-      // Detectar equips empatats per aplicar mini-lliga
-      const tiedTeams = Object.values(stats).filter(t => t.pts === a.pts);
+      return Object.values(stats).sort((a, b) => {
+        // 1. Puntos totales
+        if (b.pts !== a.pts) return b.pts - a.pts;
 
-      if (tiedTeams.length === 2) {
-        // Desempat entre 2: Enfrontament directe
+        // 2. Diferencia de goles GENERAL (Criterio FIFA principal antes que H2H en 2026)
+        const dgA = a.gf - a.gc;
+        const dgB = b.gf - b.gc;
+        if (dgB !== dgA) return dgB - dgA;
+
+        // 3. Goles a favor GENERAL
+        if (b.gf !== a.gf) return b.gf - a.gf;
+
+        // 4. Enfrentamiento directo (Si persiste el empate)
         const h2h_a = a.headToHead[b.name];
         const h2h_b = b.headToHead[a.name];
         if (h2h_a && h2h_b) {
-          const diffA = h2h_a.gf - h2h_a.gc;
-          const diffB = h2h_b.gf - h2h_b.gc;
-          if (diffA !== diffB) return diffB - diffA;
           if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
         }
-      } else if (tiedTeams.length > 2) {
-        // Desempat entre 3+: Mini-lliga
-        const getMiniStats = (team: TeamStats) => {
-          let gf = 0, gc = 0;
-          tiedTeams.forEach(opp => {
-            if (opp.name !== team.name && team.headToHead[opp.name]) {
-              gf += team.headToHead[opp.name].gf;
-              gc += team.headToHead[opp.name].gc;
-            }
-          });
-          return { gf, diff: gf - gc };
-        };
-        const miniA = getMiniStats(a);
-        const miniB = getMiniStats(b);
-        if (miniA.diff !== miniB.diff) return miniB.diff - miniA.diff;
-        if (miniA.gf !== miniB.gf) return miniB.gf - miniA.gf;
-      }
 
-      // 3. Diferència de gols general
-      const dgA = a.gf - a.gc;
-      const dgB = b.gf - b.gc;
-      if (dgB !== dgA) return dgB - dgA;
-
-      // 4. Gols marcats totals
-      if (b.gf !== a.gf) return b.gf - a.gf;
-
-      // 5. Alfabet (últim recurs)
-      return a.name.localeCompare(b.name);
-    }).map(s => ({ ...s, dg: s.gf - s.gc }));
-  };
+        // 5. Alfabeto
+        return a.name.localeCompare(b.name);
+      }).map(s => ({ ...s, dg: s.gf - s.gc }));
+    };
 
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || null, [groups, activeGroupId]);
   const activeTable = useMemo(() => activeGroup ? calculateTable(activeGroup) : [], [activeGroup]);
