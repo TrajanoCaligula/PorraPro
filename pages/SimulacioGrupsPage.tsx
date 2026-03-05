@@ -17,7 +17,7 @@ interface TeamStats {
   dg: number;
   pts: number;
   headToHead: Record<string, { gf: number; gc: number }>;
-  needsFairPlay?: boolean; // Propiedad para marcar empate técnico
+  needsFairPlay?: boolean; 
 }
 
 interface MatchPrediction {
@@ -137,7 +137,6 @@ const SimulacioGrupsPage: React.FC = () => {
     fetchInitialData();
   }, [poolCode, navigate]);
 
-  // --- Lógica de Cálculo con Desempate Mundial 2026 ---
   const calculateTable = (group: Group): TeamStats[] => {
     const stats: Record<string, TeamStats> = {};
 
@@ -174,7 +173,6 @@ const SimulacioGrupsPage: React.FC = () => {
       }
     });
 
-    // Ordenación según criterios FIFA
     const sorted = Object.values(stats).sort((a, b) => {
       if (b.pts !== a.pts) return b.pts - a.pts;
       const dgA = a.gf - a.gc;
@@ -185,31 +183,24 @@ const SimulacioGrupsPage: React.FC = () => {
       const h2h_a = a.headToHead[b.name];
       const h2h_b = b.headToHead[a.name];
       if (h2h_a && h2h_b) {
-        const h2hDgA = h2h_a.gf - h2h_a.gc;
-        const h2hDgB = h2h_b.gf - h2h_b.gc;
-        if (h2hDgB !== h2hDgA) return h2hDgB - h2hDgA;
-        if (h2h_b.gf !== h2h_a.gf) return h2h_b.gf - h2h_a.gf;
+        if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
       }
-
       return a.name.localeCompare(b.name);
     }).map(s => ({ ...s, dg: s.gf - s.gc }));
 
-    // Detectar si persiste el empate para marcar Fair Play
+    // Lógica para marcar el Fair Play si el empate persiste después de H2H
     for (let i = 0; i < sorted.length - 1; i++) {
-      const a = sorted[i];
-      const b = sorted[i + 1];
-      const h2h_a = a.headToHead[b.name];
-      const h2h_b = b.headToHead[a.name];
-
-      if (
-        a.pts === b.pts && 
-        a.dg === b.dg && 
-        a.gf === b.gf &&
-        (!h2h_a || !h2h_b || (h2h_a.gf === h2h_b.gf && h2h_a.gc === h2h_b.gc))
-      ) {
-        a.needsFairPlay = true;
-        b.needsFairPlay = true;
-      }
+        const a = sorted[i];
+        const b = sorted[i+1];
+        const h2h_a = a.headToHead[b.name];
+        const h2h_b = b.headToHead[a.name];
+        
+        if (a.pts === b.pts && (a.gf - a.gc) === (b.gf - b.gc) && a.gf === b.gf) {
+            if (!h2h_a || !h2h_b || (h2h_a.gf === h2h_b.gf && h2h_a.gc === h2h_b.gc)) {
+                a.needsFairPlay = true;
+                b.needsFairPlay = true;
+            }
+        }
     }
 
     return sorted;
@@ -317,7 +308,7 @@ const SimulacioGrupsPage: React.FC = () => {
                 if (saved) navigate(`/simulacion-finales/${poolCode}`);
               }}
               disabled={completedMatches < totalMatches || loading}
-              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
             >
               Siguiente fase →
             </button>
@@ -337,6 +328,7 @@ const SimulacioGrupsPage: React.FC = () => {
 
       <main className="flex-grow p-4 md:p-10 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-10">
+          
           <section className="space-y-6">
             <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
             <div className="space-y-4">
@@ -344,19 +336,21 @@ const SimulacioGrupsPage: React.FC = () => {
                 <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img src={match.homeFlag} alt="" className="w-14 h-10 object-contain rounded-xl" />
-                      <span className="font-bold text-[10px] md:text-xs text-center uppercase">{match.home}</span>
+                      <img src={match.homeFlag} alt="" className="w-14 h-10 object-contain rounded-xl shadow-sm" />
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.home}</span>
                     </div>
+
                     <div className="flex flex-col items-center gap-3">
                       <div className="flex items-center gap-2 md:gap-3">
-                        <input type="number" value={match.homeScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
+                        <input type="number" value={match.homeScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
                         <span className="text-brand-text-dim font-black text-xl">-</span>
-                        <input type="number" value={match.awayScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
+                        <input type="number" value={match.awayScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
                       </div>
                     </div>
+
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain rounded-xl" />
-                      <span className="font-bold text-[10px] md:text-xs text-center uppercase">{match.away}</span>
+                      <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain rounded-xl shadow-sm" />
+                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.away}</span>
                     </div>
                   </div>
                 </div>
@@ -370,10 +364,15 @@ const SimulacioGrupsPage: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[500px]">
                   <thead>
-                    <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase text-brand-text-dim">
+                    <tr className="bg-brand-blue-light/30 text-[10px] font-black uppercase tracking-widest text-brand-text-dim">
                       <th className="px-4 py-4 text-center w-12">Pos</th>
                       <th className="px-4 py-4">Equipo</th>
                       <th className="px-2 py-4 text-center">PJ</th>
+                      <th className="px-2 py-4 text-center">PG</th>
+                      <th className="px-2 py-4 text-center">PE</th>
+                      <th className="px-2 py-4 text-center">PP</th>
+                      <th className="px-2 py-4 text-center">GF</th>
+                      <th className="px-2 py-4 text-center">GC</th>
                       <th className="px-2 py-4 text-center">DG</th>
                       <th className="px-4 py-4 text-center bg-brand-blue-light/50 text-white">Pts</th>
                     </tr>
@@ -389,11 +388,16 @@ const SimulacioGrupsPage: React.FC = () => {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm" />
+                            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm shadow-sm" />
                             <span className={`font-bold text-xs truncate w-24 ${team.needsFairPlay ? 'text-brand-orange' : ''}`}>{team.name}</span>
                           </div>
                         </td>
                         <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pg}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pe}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pp}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
+                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
                         <td className={`px-2 py-4 text-center text-[10px] font-bold font-mono ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
                           {team.dg > 0 ? `+${team.dg}` : team.dg}
                         </td>
@@ -406,15 +410,21 @@ const SimulacioGrupsPage: React.FC = () => {
                 </table>
               </div>
               <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
-                <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-2 flex items-center gap-2">⚠️ Empate Técnico</h3>
-                <p className="text-[10px] text-brand-text-dim leading-relaxed">
-                  Si ves el icono ⚠️, los equipos están empatados en todos los criterios deportivos. La posición final se decidiría por <strong>Puntos Fair Play</strong> o <strong>Sorteo</strong>.
-                </p>
+                  <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">⚠️ Criterios de desempate (Mundial 2026)</h3>
+                  <p className="text-[10px] text-brand-text-dim leading-relaxed mb-3">En caso de empate a puntos, el orden se decide por el resultado directo entre los implicados. Si persiste el empate (⚠️), se recurre al Fair Play o Sorteo.</p>
+                  <ol className="text-[10px] text-brand-text-dim space-y-1 list-decimal ml-4">
+                    <li>Mayor <strong>diferencia de goles</strong> en los partidos entre los implicados.</li>
+                    <li>Mayor número de <strong>goles marcados</strong> en los partidos entre los implicados.</li>
+                    <li>Mejor <strong>diferencia de goles general</strong>.</li>
+                    <li>Mayor número de <strong>goles marcados</strong> general.</li>
+                    <li>Conducta deportiva (Fair Play).</li>
+                  </ol>
               </div>
             </div>
           </section>
         </div>
       </main>
+      <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">Porra Pro © 2026</footer>
     </div>
   );
 };
