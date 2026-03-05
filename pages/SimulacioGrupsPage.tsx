@@ -185,29 +185,36 @@ const SimulacioGrupsPage: React.FC = () => {
         }
       });
 
-      return Object.values(stats).sort((a, b) => {
-        // 1. Puntos totales
-        if (b.pts !== a.pts) return b.pts - a.pts;
+      // --- Dentro de calculateTable ---
 
-        // 2. Diferencia de goles GENERAL (Criterio FIFA principal antes que H2H en 2026)
-        const dgA = a.gf - a.gc;
-        const dgB = b.gf - b.gc;
-        if (dgB !== dgA) return dgB - dgA;
+        return Object.values(stats).sort((a, b) => {
+          // 1. Puntos
+          if (b.pts !== a.pts) return b.pts - a.pts;
 
-        // 3. Goles a favor GENERAL
-        if (b.gf !== a.gf) return b.gf - a.gf;
+          // 2. Diferencia de Goles General
+          const dgA = a.gf - a.gc;
+          const dgB = b.gf - b.gc;
+          if (dgB !== dgA) return dgB - dgA;
 
-        // 4. Enfrentamiento directo (Si persiste el empate)
-        const h2h_a = a.headToHead[b.name];
-        const h2h_b = b.headToHead[a.name];
-        if (h2h_a && h2h_b) {
-          if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
-        }
+          // 3. Goles Marcados General
+          if (b.gf !== a.gf) return b.gf - a.gf;
 
-        // 5. Alfabeto
-        return a.name.localeCompare(b.name);
-      }).map(s => ({ ...s, dg: s.gf - s.gc }));
-    };
+          // 4. Enfrentamiento Directo (H2H)
+          const h2h_a = a.headToHead[b.name];
+          const h2h_b = b.headToHead[a.name];
+          if (h2h_a && h2h_b) {
+            if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
+            // Nota: Si el H2H también es empate, pasamos al siguiente
+          }
+
+          // Si llegamos aquí, los equipos están empatados en TODO lo deportivo
+          // Marcamos ambos para Fair Play / Sorteo
+          (a as any).needsFairPlay = true;
+          (b as any).needsFairPlay = true;
+
+          // 5. Alfabeto (para que el orden no salte erráticamente en la UI)
+          return a.name.localeCompare(b.name);
+        }).map(s => ({ ...s, dg: s.gf - s.gc }));
 
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || null, [groups, activeGroupId]);
   const activeTable = useMemo(() => activeGroup ? calculateTable(activeGroup) : [], [activeGroup]);
@@ -461,11 +468,23 @@ const SimulacioGrupsPage: React.FC = () => {
                   <tbody className="divide-y divide-brand-blue-light">
                     {activeTable.map((team, i) => (
                       <tr key={team.name} className={`transition-colors ${i < 2 ? 'bg-brand-green/5' : ''}`}>
-                        <td className="px-4 py-4 text-center font-bold text-xs">{i + 1}</td>
+                        <td className="px-4 py-4 text-center font-bold text-xs relative">
+                          {i + 1}
+                          {/* Indicador de Fair Play / Sorteo */}
+                          {(team as any).needsFairPlay && (
+                            <span 
+                              title="Empate técnico: Se decidirá por Fair Play o Sorteo" 
+                              className="absolute left-1 top-1 text-[8px] text-brand-orange animate-pulse"
+                            >
+                              ⚠️
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-3">
                             <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm shadow-sm" />
-                            <span className="font-bold text-xs truncate w-24">{team.name}</span>
+                            <span className={`font-bold text-xs truncate w-24 ${(team as any).needsFairPlay ? 'text-brand-orange' : ''}`}>
+                              {team.name}</span>
                           </div>
                         </td>
                         <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
