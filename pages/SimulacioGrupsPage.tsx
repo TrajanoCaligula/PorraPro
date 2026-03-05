@@ -497,22 +497,22 @@ const SimulacioGrupsPage: React.FC = () => {
                 </table>
               </div>
               
-              {/* --- QUADRE EXPLICATIU EN CATALÀ --- */}
-              <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
-                <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
-                  ⚠️ Criteris de desempat (Mundial 2026)
-                </h3>
-                <p className="text-[10px] text-brand-text-dim leading-relaxed mb-3">
-                  En cas d'empat a punts, l'ordre es decideix pel <strong>resultat directe</strong> entre els equips implicats (mini-lliga):
-                </p>
-                <ol className="text-[10px] text-brand-text-dim space-y-1 list-decimal ml-4">
-                  <li>Millor <strong>diferència de gols</strong> en els partits entre els equips empatats.</li>
-                  <li>Major nombre de <strong>gols marcats</strong> en els partits entre els equips empatats.</li>
-                  <li>Millor <strong>diferència de gols general</strong> en tots els partits del grup.</li>
-                  <li>Major nombre de <strong>gols marcats</strong> en tota la fase de grups.</li>
-                  <li>Millor conducta esportiva (punts Fair Play).</li>
-                </ol>
-              </div>
+              {/* --- CUADRO EXPLICATIVO EN CASTELLANO --- */}
+                <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
+                  <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
+                    ⚠️ Criterios de desempate (Mundial 2026)
+                  </h3>
+                  <p className="text-[10px] text-brand-text-dim leading-relaxed mb-3">
+                    En caso de empate a puntos, el orden se decide por el <strong>resultado directo</strong> entre los equipos implicados (mini-liga):
+                  </p>
+                  <ol className="text-[10px] text-brand-text-dim space-y-1 list-decimal ml-4">
+                    <li>Mayor <strong>diferencia de goles</strong> en los partidos entre los equipos empatados.</li>
+                    <li>Mayor número de <strong>goles marcados</strong> en los partidos entre los equipos empatados.</li>
+                    <li>Mejor <strong>diferencia de goles general</strong> en todos los partidos del grupo.</li>
+                    <li>Mayor número de <strong>goles marcados</strong> en toda la fase de grupos.</li>
+                    <li>Mejor conducta deportiva (puntos Fair Play).</li>
+                  </ol>
+                </div>
             </div>
           </section>
 
