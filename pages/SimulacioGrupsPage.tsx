@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Logo } from '../constants';
 import { supabase } from '../lib/supabase';
 
@@ -49,13 +50,16 @@ const SimulacioGrupsPage: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeGroupId, setActiveGroupId] = useState('A');
   const [loading, setLoading] = useState(true);
+  
+  // Estado para el orden manual decidido por el usuario en empates totales
+  const [manualOrders, setManualOrders] = useState<Record<string, string[]>>({});
 
+  // --- Carga de Datos ---
   useEffect(() => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
         const userId = localStorage.getItem('user_id');
-        
         const { data: participation, error: partError } = await supabase
           .from('PoolParticipations')
           .select(`idPool, Pools!inner (code)`)
@@ -69,7 +73,6 @@ const SimulacioGrupsPage: React.FC = () => {
         }
 
         const activePoolId = participation.idPool;
-
         const [teamsRes, matchesRes, predictionsRes] = await Promise.all([
           supabase.from('Teams').select('idTeam, name, flag_url, group_name').order('group_name', { ascending: true }),
           supabase.from('Matches').select(`
@@ -98,9 +101,7 @@ const SimulacioGrupsPage: React.FC = () => {
             .filter(m => m.homeTeam && m.awayTeam)
             .map((m) => {
               const savedPred = existingPredictions.find(p => p.idMatch === m.idMatch);
-              const matchDate = m.startTime ? new Date(m.startTime) : null;
-              const now = new Date();
-              const isLocked = matchDate ? now > matchDate : false;
+              const isLocked = m.startTime ? new Date() > new Date(m.startTime) : false;
 
               return {
                 id: m.idMatch.toString(),
@@ -113,7 +114,7 @@ const SimulacioGrupsPage: React.FC = () => {
                 awayFlag: m.awayTeam?.flag_url || '🏳️',
                 homeScore: savedPred ? savedPred.scoreHome.toString() : '',
                 awayScore: savedPred ? savedPred.scoreAway.toString() : '',
-                isLocked: isLocked,
+                isLocked,
                 startTime: m.startTime
               };
             });
@@ -133,13 +134,12 @@ const SimulacioGrupsPage: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchInitialData();
   }, [poolCode, navigate]);
 
+  // --- Lógica de Cálculo y Ordenación ---
   const calculateTable = (group: Group): TeamStats[] => {
     const stats: Record<string, TeamStats> = {};
-
     group.teams.forEach(t => {
       stats[t.name] = { 
         name: t.name, flag: t.flag, pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0,
@@ -150,12 +150,10 @@ const SimulacioGrupsPage: React.FC = () => {
     group.matches.forEach(m => {
       const hS = parseInt(m.homeScore);
       const aS = parseInt(m.awayScore);
-
       if (!isNaN(hS) && !isNaN(aS)) {
         const home = stats[m.home];
         const away = stats[m.away];
         if (!home || !away) return;
-    
         home.pj++; away.pj++;
         home.gf += hS; home.gc += aS;
         away.gf += aS; away.gc += hS;
@@ -182,55 +180,65 @@ const SimulacioGrupsPage: React.FC = () => {
 
       const h2h_a = a.headToHead[b.name];
       const h2h_b = b.headToHead[a.name];
-      if (h2h_a && h2h_b) {
-        if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
+      if (h2h_a && h2h_b && h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
+
+      // Aplicar orden manual si existe para este grupo
+      const groupManualOrder = manualOrders[group.id];
+      if (groupManualOrder) {
+        return groupManualOrder.indexOf(a.name) - groupManualOrder.indexOf(b.name);
       }
       return a.name.localeCompare(b.name);
     }).map(s => ({ ...s, dg: s.gf - s.gc }));
 
-    // Lógica para marcar el Fair Play si el empate persiste después de H2H
+    // Marcar equipos que necesitan Fair Play
     for (let i = 0; i < sorted.length - 1; i++) {
-        const a = sorted[i];
-        const b = sorted[i+1];
+      const a = sorted[i];
+      const b = sorted[i+1];
+      if (a.pts === b.pts && (a.gf - a.gc) === (b.gf - b.gc) && a.gf === b.gf) {
         const h2h_a = a.headToHead[b.name];
         const h2h_b = b.headToHead[a.name];
-        
-        if (a.pts === b.pts && (a.gf - a.gc) === (b.gf - b.gc) && a.gf === b.gf) {
-            if (!h2h_a || !h2h_b || (h2h_a.gf === h2h_b.gf && h2h_a.gc === h2h_b.gc)) {
-                a.needsFairPlay = true;
-                b.needsFairPlay = true;
-            }
+        if (!h2h_a || !h2h_b || (h2h_a.gf === h2h_b.gf && h2h_a.gc === h2h_b.gc)) {
+          a.needsFairPlay = true;
+          b.needsFairPlay = true;
         }
+      }
     }
-
     return sorted;
   };
 
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || null, [groups, activeGroupId]);
-  const activeTable = useMemo(() => activeGroup ? calculateTable(activeGroup) : [], [activeGroup]);
+  const activeTable = useMemo(() => activeGroup ? calculateTable(activeGroup) : [], [activeGroup, manualOrders]);
 
+  // --- Handlers de UI ---
   const handleScoreChange = (matchId: string, side: 'home' | 'away', value: string) => {
-    if (value === '') {
-      updateGroups(matchId, side, '');
-      return;
-    }
-    const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 0) {
-      updateGroups(matchId, side, numValue.toString());
-    }
-  };
-
-  const updateGroups = (matchId: string, side: 'home' | 'away', value: string) => {
+    const val = value === '' ? '' : Math.max(0, parseInt(value, 10)).toString();
     setGroups(prev => prev.map(g => ({
       ...g,
-      matches: g.matches.map(m => m.id === matchId ? { ...m, [side === 'home' ? 'homeScore' : 'awayScore']: value } : m)
+      matches: g.matches.map(m => m.id === matchId ? { ...m, [side === 'home' ? 'homeScore' : 'awayScore']: val } : m)
     })));
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination || !activeGroup) return;
+    const sourceTeam = activeTable[result.source.index];
+    const destTeam = activeTable[result.destination.index];
+
+    if (sourceTeam.needsFairPlay && destTeam.needsFairPlay) {
+      const newOrder = Array.from(activeTable);
+      const [moved] = newOrder.splice(result.source.index, 1);
+      newOrder.splice(result.destination.index, 0, moved);
+
+      setManualOrders(prev => ({
+        ...prev,
+        [activeGroupId]: newOrder.map(t => t.name)
+      }));
+    }
   };
 
   const handleSavePredictions = async (showAlert = false) => {
     setLoading(true);
-    const userId = localStorage.getItem('user_id');
     try {
+      const userId = localStorage.getItem('user_id');
       const { data: poolData } = await supabase.from('Pools').select('idPool').eq('code', poolCode).single();
       if (!poolData || !userId) throw new Error("Sesión no válida");
 
@@ -252,11 +260,10 @@ const SimulacioGrupsPage: React.FC = () => {
         const { error } = await supabase.from('Predictions').upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
         if (error) throw error;
       }
-      
       if (showAlert) alert("¡Sincronizado!");
       return true;
     } catch (err: any) {
-      alert("Error al guardar: " + err.message);
+      alert("Error: " + err.message);
       return false;
     } finally {
       setLoading(false);
@@ -287,7 +294,6 @@ const SimulacioGrupsPage: React.FC = () => {
               <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
             </div>
           </div>
-
           <div className="flex flex-col items-end gap-2 w-full md:w-auto">
             <div className="flex justify-between w-full text-[10px] font-bold uppercase tracking-widest text-brand-text-dim">
               <span>Progreso</span>
@@ -297,18 +303,15 @@ const SimulacioGrupsPage: React.FC = () => {
               <div className="h-full bg-brand-green transition-all duration-500" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
-
           <div className="flex gap-3">
-            <button onClick={() => handleSavePredictions(true)} disabled={loading} className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-all disabled:opacity-50">
-              {loading ? '...' : 'Guardar'}
-            </button>
+            <button onClick={() => handleSavePredictions(true)} className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light">Guardar</button>
             <button 
               onClick={async () => {
                 const saved = await handleSavePredictions(false);
                 if (saved) navigate(`/simulacion-finales/${poolCode}`);
               }}
-              disabled={completedMatches < totalMatches || loading}
-              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep hover:bg-brand-green-dark shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
+              disabled={completedMatches < totalMatches}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
             >
               Siguiente fase →
             </button>
@@ -319,7 +322,7 @@ const SimulacioGrupsPage: React.FC = () => {
       <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex px-6">
           {groups.map(g => (
-            <button key={g.id} onClick={() => setActiveGroupId(g.id)} className={`px-6 py-4 text-sm font-black transition-all border-b-2 whitespace-nowrap ${activeGroupId === g.id ? 'border-brand-green text-brand-green bg-brand-green/5' : 'border-transparent text-brand-text-dim hover:text-white'}`}>
+            <button key={g.id} onClick={() => setActiveGroupId(g.id)} className={`px-6 py-4 text-sm font-black transition-all border-b-2 ${activeGroupId === g.id ? 'border-brand-green text-brand-green bg-brand-green/5' : 'border-transparent text-brand-text-dim hover:text-white'}`}>
               GRUPO {g.id}
             </button>
           ))}
@@ -328,29 +331,24 @@ const SimulacioGrupsPage: React.FC = () => {
 
       <main className="flex-grow p-4 md:p-10 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-10">
-          
           <section className="space-y-6">
             <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
             <div className="space-y-4">
               {activeGroup.matches.map(match => (
-                <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl shadow-xl">
+                <div key={match.id} className="bg-brand-blue-mid border border-brand-blue-light p-6 rounded-2xl">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img src={match.homeFlag} alt="" className="w-14 h-10 object-contain rounded-xl shadow-sm" />
-                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.home}</span>
+                      <img src={match.homeFlag} alt="" className="w-14 h-10 object-contain" />
+                      <span className="font-bold text-xs uppercase text-center">{match.home}</span>
                     </div>
-
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="flex items-center gap-2 md:gap-3">
-                        <input type="number" value={match.homeScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
-                        <span className="text-brand-text-dim font-black text-xl">-</span>
-                        <input type="number" value={match.awayScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)} className={`w-12 h-14 md:w-14 md:h-16 bg-brand-blue-deep border rounded-xl text-center text-xl md:text-2xl font-black focus:border-brand-green outline-none ${match.isLocked ? 'opacity-40 border-gray-600' : 'border-brand-blue-light'}`} />
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <input type="number" value={match.homeScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)} className="w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black focus:border-brand-green outline-none" />
+                      <span className="text-brand-text-dim font-black">-</span>
+                      <input type="number" value={match.awayScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)} className="w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black focus:border-brand-green outline-none" />
                     </div>
-
                     <div className="flex-1 flex flex-col items-center gap-3">
-                      <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain rounded-xl shadow-sm" />
-                      <span className="font-bold text-[10px] md:text-xs text-center uppercase tracking-wider">{match.away}</span>
+                      <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain" />
+                      <span className="font-bold text-xs uppercase text-center">{match.away}</span>
                     </div>
                   </div>
                 </div>
@@ -368,57 +366,53 @@ const SimulacioGrupsPage: React.FC = () => {
                       <th className="px-4 py-4 text-center w-12">Pos</th>
                       <th className="px-4 py-4">Equipo</th>
                       <th className="px-2 py-4 text-center">PJ</th>
-                      <th className="px-2 py-4 text-center">PG</th>
-                      <th className="px-2 py-4 text-center">PE</th>
-                      <th className="px-2 py-4 text-center">PP</th>
                       <th className="px-2 py-4 text-center">GF</th>
                       <th className="px-2 py-4 text-center">GC</th>
                       <th className="px-2 py-4 text-center">DG</th>
                       <th className="px-4 py-4 text-center bg-brand-blue-light/50 text-white">Pts</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-brand-blue-light">
-                    {activeTable.map((team, i) => (
-                      <tr key={team.name} className={`transition-colors ${i < 2 ? 'bg-brand-green/5' : ''}`}>
-                        <td className="px-4 py-4 text-center font-bold text-xs relative">
-                          {i + 1}
-                          {team.needsFairPlay && (
-                            <span title="Empate técnico absoluto" className="absolute left-1 top-1 text-[8px] text-brand-orange animate-pulse">⚠️</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm shadow-sm" />
-                            <span className={`font-bold text-xs truncate w-24 ${team.needsFairPlay ? 'text-brand-orange' : ''}`}>{team.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pg}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pe}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pp}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
-                        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
-                        <td className={`px-2 py-4 text-center text-[10px] font-bold font-mono ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
-                          {team.dg > 0 ? `+${team.dg}` : team.dg}
-                        </td>
-                        <td className={`px-4 py-4 text-center font-black text-md ${i < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/20'}`}>
-                          {team.pts}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable droppableId={`table-${activeGroupId}`}>
+                      {(provided) => (
+                        <tbody {...provided.droppableProps} ref={provided.innerRef} className="divide-y divide-brand-blue-light">
+                          {activeTable.map((team, i) => (
+                            <Draggable key={team.name} draggableId={team.name} index={i} isDragDisabled={!team.needsFairPlay}>
+                              {(provided, snapshot) => (
+                                <tr
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={`transition-colors ${snapshot.isDragging ? 'bg-brand-blue-light/50 shadow-2xl' : i < 2 ? 'bg-brand-green/5' : ''} ${team.needsFairPlay ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                                >
+                                  <td className="px-4 py-4 text-center font-bold text-xs relative">
+                                    {i + 1}
+                                    {team.needsFairPlay && <span className="absolute left-1 top-1 text-[8px] text-brand-orange animate-pulse">⠿</span>}
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <div className="flex items-center gap-3">
+                                      <img src={team.flag} alt="" className="w-6 h-4 object-contain" />
+                                      <span className={`font-bold text-xs ${team.needsFairPlay ? 'text-brand-orange' : ''}`}>{team.name}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
+                                  <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
+                                  <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
+                                  <td className={`px-2 py-4 text-center text-[10px] font-bold ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>{team.dg > 0 ? `+${team.dg}` : team.dg}</td>
+                                  <td className={`px-4 py-4 text-center font-black text-md ${i < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/20'}`}>{team.pts}</td>
+                                </tr>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </tbody>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
                 </table>
               </div>
-              <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
-                  <h3 className="text-brand-orange text-[11px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">⚠️ Criterios de desempate (Mundial 2026)</h3>
-                  <p className="text-[10px] text-brand-text-dim leading-relaxed mb-3">En caso de empate a puntos, el orden se decide por el resultado directo entre los implicados. Si persiste el empate (⚠️), se recurre al Fair Play o Sorteo.</p>
-                  <ol className="text-[10px] text-brand-text-dim space-y-1 list-decimal ml-4">
-                    <li>Mayor <strong>diferencia de goles</strong> en los partidos entre los implicados.</li>
-                    <li>Mayor número de <strong>goles marcados</strong> en los partidos entre los implicados.</li>
-                    <li>Mejor <strong>diferencia de goles general</strong>.</li>
-                    <li>Mayor número de <strong>goles marcados</strong> general.</li>
-                    <li>Conducta deportiva (Fair Play).</li>
-                  </ol>
+              <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light text-[10px] text-brand-text-dim">
+                <p>⚠️ <strong>Empate absoluto:</strong> Arrastra equipos con el icono ⠿ para decidir el orden manual por Fair Play.</p>
               </div>
             </div>
           </section>
