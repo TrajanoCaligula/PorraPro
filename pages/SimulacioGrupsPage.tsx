@@ -511,45 +511,49 @@ const SimulacioGrupsPage: React.FC = () => {
           </section>
         </div>
       </main>
-      <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">Porra Pro © 2026</footer>
-    </div>
-    {showTieWarning && (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-blue-deep/90 backdrop-blur-md">
-    <div className="bg-brand-blue-mid border-2 border-brand-orange/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(255,165,0,0.2)] animate-in fade-in zoom-in duration-200">
-      <div className="text-brand-orange mb-4 flex justify-center">
-        <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      </div>
-      
-      <h3 className="text-xl font-black uppercase italic text-center mb-2">Equipos Empatados</h3>
-      <p className="text-sm text-brand-text-dim text-center mb-8 leading-relaxed">
-        Hay grupos donde el orden es **aleatorio** por empate total. ¿Quieres revisarlos usando el Fair Play (arrastrar equipos) o prefieres continuar?
-      </p>
+      <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">
+        Porra Pro © 2026
+      </footer>
 
-      <div className="space-y-3">
-        {/* OPCIÓN 1: QUEDARSE */}
-        <button 
-          onClick={() => setShowTieWarning(false)}
-          className="w-full py-4 bg-white/5 border border-brand-blue-light text-white font-black uppercase rounded-xl hover:bg-white/10 transition-all text-xs"
-        >
-          Volver y revisar empates
-        </button>
-        
-        {/* OPCIÓN 2: SALTAR A FASE FINAL */}
-        <button 
-          onClick={async () => {
-            setShowTieWarning(false);
-            const saved = await handleSavePredictions(false);
-            if (saved) navigate(`/simulacion-finales/${poolCode}`);
-          }}
-          className="w-full py-4 bg-brand-orange text-brand-blue-deep font-black uppercase rounded-xl hover:scale-[1.02] active:scale-95 transition-all text-xs shadow-lg shadow-brand-orange/20"
-        >
-          Continuar de todos modos →
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {/* EL MODAL DEBE IR AQUÍ: Antes del último paréntesis del return */}
+      {showTieWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-blue-deep/90 backdrop-blur-md">
+          <div className="bg-brand-blue-mid border-2 border-brand-orange/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(255,165,0,0.2)] animate-in fade-in zoom-in duration-200">
+            <div className="text-brand-orange mb-4 flex justify-center">
+              <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            
+            <h3 className="text-xl font-black uppercase italic text-center mb-2 text-white">Equipos Empatados</h3>
+            <p className="text-sm text-brand-text-dim text-center mb-8 leading-relaxed">
+              Hay grupos donde el orden es **aleatorio** por empate total. ¿Quieres revisarlos usando el Fair Play (arrastrar equipos) o prefieres continuar?
+            </p>
+
+            <div className="space-y-3">
+              <button 
+                onClick={() => setShowTieWarning(false)}
+                className="w-full py-4 bg-white/5 border border-brand-blue-light text-white font-black uppercase rounded-xl hover:bg-white/10 transition-all text-xs"
+              >
+                Volver y revisar empates
+              </button>
+              
+              <button 
+                onClick={async () => {
+                  setShowTieWarning(false);
+                  const saved = await handleSavePredictions(false);
+                  if (saved) navigate(`/simulacion-finales/${poolCode}`);
+                }}
+                className="w-full py-4 bg-brand-orange text-brand-blue-deep font-black uppercase rounded-xl hover:scale-[1.02] active:scale-95 transition-all text-xs shadow-lg shadow-brand-orange/20"
+              >
+                Continuar de todos modos →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div> // Este cierra el primer <div className="min-h-screen...
+  ); // Este cierra el return (
+}; // Este cierra el componente const SimulacioGrupsPage...
 
 export default SimulacioGrupsPage;
