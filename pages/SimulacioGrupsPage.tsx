@@ -286,6 +286,7 @@ const SimulacioGrupsPage: React.FC = () => {
   }
 
   return (
+    return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
       <style>{`
         input.no-spinner::-webkit-outer-spin-button, input.no-spinner::-webkit-inner-spin-button {
@@ -294,60 +295,46 @@ const SimulacioGrupsPage: React.FC = () => {
         input.no-spinner[type=number] { -moz-appearance: textfield; }
         [data-rbd-draggable-context-id] { transition: none !important; }
         .tie-block [data-rbd-placeholder-context-id] { display: none !important; }
-      `}</style>
+      `}`</style>
       
+      {/* HEADER: Limpio, sin la barrita pequeña de antes para no duplicar */}
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex items-center gap-4">
-              <Logo />
-              <div className="h-8 w-px bg-brand-blue-light hidden md:block"></div>
-              <div>
-                <h1 className="text-xl font-black uppercase tracking-tight">Simulación — Fase de Grupos</h1>
-                <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-5">
-              {/* LA BARRA: Compacta, numérica y a la izquierda */}
-              <div className="hidden sm:flex flex-col items-end gap-1">
-                <span className="text-[10px] font-black text-brand-green uppercase tracking-tighter">
-                  {completedMatches} / {totalMatches} PARTIDOS
-                </span>
-                <div className="w-20 h-1 bg-brand-blue-deep rounded-full overflow-hidden border border-brand-blue-light/20">
-                  <div 
-                    className="h-full bg-brand-green transition-all duration-500"
-                    style={{ width: `${(completedMatches / totalMatches) * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => handleSavePredictions(true)} 
-                  className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-colors"
-                >
-                  Guardar
-                </button>
-                <button 
-                  onClick={async () => {
-                    const saved = await handleSavePredictions(false);
-                    if (saved) navigate(`/simulacion-finales/${poolCode}`);
-                  }}
-                  disabled={completedMatches < totalMatches}
-                  className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
-                    completedMatches === totalMatches 
-                      ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' 
-                      : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
-                  }`}
-                >
-                  Siguiente fase →
-                </button>
-              </div>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-4">
+            <Logo />
+            <div className="h-8 w-px bg-brand-blue-light hidden md:block"></div>
+            <div>
+              <h1 className="text-xl font-black uppercase tracking-tight">Simulación — Fase de Grupos</h1>
+              <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
             </div>
           </div>
-        </header>
 
-      {/* BARRA DE PROGRESO */}
+          <div className="flex gap-3">
+            <button 
+              onClick={() => handleSavePredictions(true)} 
+              className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-colors"
+            >
+              Guardar
+            </button>
+            <button 
+              onClick={async () => {
+                const saved = await handleSavePredictions(false);
+                if (saved) navigate(`/simulacion-finales/${poolCode}`);
+              }}
+              disabled={completedMatches < totalMatches}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
+                completedMatches === totalMatches 
+                  ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' 
+                  : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
+              }`}
+            >
+              Siguiente fase →
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ESTA ES LA BARRA DEL ARCHIVO QUE HAS SUBIDO: Integrada con tu lógica */}
       <div className="bg-brand-blue-mid/30 border-b border-brand-blue-light/50 py-3">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex justify-between items-center mb-2">
