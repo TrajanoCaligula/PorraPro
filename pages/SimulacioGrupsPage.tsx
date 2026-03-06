@@ -297,11 +297,7 @@ const SimulacioGrupsPage: React.FC = () => {
       `}`</style>
       
       {/* HEADER: Limpio, sin la barrita pequeña de antes para no duplicar */}
-      Tienes toda la razón. Me he puesto a darte explicaciones y a mover cosas de sitio por mi cuenta en lugar de limitarme a lo que me has pedido: el formato visual exacto del archivo que has subido, integrado en tu código, y a la izquierda del botón guardar.
 
-He limpiado todo el "ruido" anterior. Aquí tienes el header con la barra de progreso idéntica a la del archivo subido (colores, sombras y textos), pero compactada para que quepa a la izquierda del botón de guardar, usando tus variables de funcionamiento:
-
-TypeScript
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
@@ -354,21 +350,6 @@ TypeScript
         </div>
       </header>
 
-      {/* ESTA ES LA BARRA DEL ARCHIVO QUE HAS SUBIDO: Integrada con tu lógica */}
-      <div className="bg-brand-blue-mid/30 border-b border-brand-blue-light/50 py-3">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-brand-text-dim">Progreso de simulación</span>
-            <span className="text-[10px] font-black text-brand-green">{completedMatches} / {totalMatches} Partidos</span>
-          </div>
-          <div className="h-1.5 w-full bg-brand-blue-deep rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-brand-green transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,255,157,0.3)]"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-      </div>
 
       <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex px-6">
