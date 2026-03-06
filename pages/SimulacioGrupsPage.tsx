@@ -518,7 +518,7 @@ const SimulacioGrupsPage: React.FC = () => {
             
             <h3 className="text-xl font-black uppercase italic text-center mb-2 text-white">Equipos Empatados</h3>
             <p className="text-sm text-brand-text-dim text-center mb-8 leading-relaxed">
-              Hay grupos donde el orden es <strong>aleatorio</strong> por empate total. ¿Quieres revisarlos usando el Fair Play (arrastrar equipos) o prefieres continuar?
+              Hay grupos con empates absolutos en todos los criterios. stos se deciden por <strong>Fair Play</strong>. Puedes desempatar arrastrando manualmente los equipos en la tabla de cada grupo o continuar con la clasificación actual.
             </p>
 
             <div className="space-y-3">
@@ -537,7 +537,7 @@ const SimulacioGrupsPage: React.FC = () => {
                 }}
                 className="w-full py-4 bg-brand-orange text-brand-blue-deep font-black uppercase rounded-xl hover:scale-[1.02] active:scale-95 transition-all text-xs shadow-lg shadow-brand-orange/20"
               >
-                Continuar de todos modos →
+                Continuar con la clasificación actual →
               </button>
             </div>
           </div>
