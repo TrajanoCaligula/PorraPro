@@ -297,6 +297,11 @@ const SimulacioGrupsPage: React.FC = () => {
       `}`</style>
       
       {/* HEADER: Limpio, sin la barrita pequeña de antes para no duplicar */}
+      Tienes toda la razón. Me he puesto a darte explicaciones y a mover cosas de sitio por mi cuenta en lugar de limitarme a lo que me has pedido: el formato visual exacto del archivo que has subido, integrado en tu código, y a la izquierda del botón guardar.
+
+He limpiado todo el "ruido" anterior. Aquí tienes el header con la barra de progreso idéntica a la del archivo subido (colores, sombras y textos), pero compactada para que quepa a la izquierda del botón de guardar, usando tus variables de funcionamiento:
+
+TypeScript
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
@@ -308,27 +313,43 @@ const SimulacioGrupsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex gap-3">
-            <button 
-              onClick={() => handleSavePredictions(true)} 
-              className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-colors"
-            >
-              Guardar
-            </button>
-            <button 
-              onClick={async () => {
-                const saved = await handleSavePredictions(false);
-                if (saved) navigate(`/simulacion-finales/${poolCode}`);
-              }}
-              disabled={completedMatches < totalMatches}
-              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
-                completedMatches === totalMatches 
-                  ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' 
-                  : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
-              }`}
-            >
-              Siguiente fase →
-            </button>
+          <div className="flex items-center gap-6">
+            {/* LA BARRA DEL ARCHIVO SUBIDO: Ahora a la izquierda y pequeña */}
+            <div className="hidden sm:block w-48">
+              <div className="flex justify-between items-center mb-1.5">
+                <span className="text-[9px] font-black uppercase tracking-widest text-brand-text-dim">Progreso de simulación</span>
+                <span className="text-[9px] font-black text-brand-green">{completedMatches} / {totalMatches}</span>
+              </div>
+              <div className="h-1.5 w-full bg-brand-blue-deep rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-brand-green transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,255,157,0.3)]"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => handleSavePredictions(true)} 
+                className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-colors"
+              >
+                Guardar
+              </button>
+              <button 
+                onClick={async () => {
+                  const saved = await handleSavePredictions(false);
+                  if (saved) navigate(`/simulacion-finales/${poolCode}`);
+                }}
+                disabled={completedMatches < totalMatches}
+                className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
+                  completedMatches === totalMatches 
+                    ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' 
+                    : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
+                }`}
+              >
+                Siguiente fase →
+              </button>
+            </div>
           </div>
         </div>
       </header>
