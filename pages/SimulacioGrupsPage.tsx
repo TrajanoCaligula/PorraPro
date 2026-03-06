@@ -167,15 +167,25 @@ const SimulacioGrupsPage: React.FC = () => {
 
     const sorted = Object.values(stats).sort((a, b) => {
       if (b.pts !== a.pts) return b.pts - a.pts;
+      
+      // 1. Enfrentamiento directo (H2H)
+      const h2h_a = a.headToHead[b.name];
+      const h2h_b = b.headToHead[a.name];
+      if (h2h_a && h2h_b) {
+        const diffH2H = (h2h_a.gf - h2h_a.gc) - (h2h_b.gf - h2h_b.gc);
+        if (diffH2H !== 0) return -diffH2H;
+        if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
+      }
+
+      // 2. Diferencia de goles general
       const dgA = a.gf - a.gc;
       const dgB = b.gf - b.gc;
       if (dgB !== dgA) return dgB - dgA;
+      
+      // 3. Goles a favor
       if (b.gf !== a.gf) return b.gf - a.gf;
 
-      const h2h_a = a.headToHead[b.name];
-      const h2h_b = b.headToHead[a.name];
-      if (h2h_a && h2h_b && h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
-
+      // 4. Orden manual (Fair Play)
       const groupManualOrder = manualOrders[group.id];
       if (groupManualOrder) {
         const idxA = groupManualOrder.indexOf(a.name);
@@ -185,13 +195,13 @@ const SimulacioGrupsPage: React.FC = () => {
       return a.name.localeCompare(b.name);
     }).map(s => ({ ...s, dg: s.gf - s.gc }));
 
-    // Detectar necesidad de Fair Play
+    // Detectar necesidad de Fair Play (Empate absoluto)
     for (let i = 0; i < sorted.length; i++) {
       const curr = sorted[i];
       const prev = sorted[i-1];
       const next = sorted[i+1];
       const isSame = (t1: TeamStats, t2: TeamStats) => 
-        t1.pts === t2.pts && (t1.gf - t1.gc) === (t2.gf - t2.gc) && t1.gf === t2.gf &&
+        t1 && t2 && t1.pts === t2.pts && (t1.gf - t1.gc) === (t2.gf - t2.gc) && t1.gf === t2.gf &&
         t1.headToHead[t2.name]?.gf === t2.headToHead[t1.name]?.gf;
 
       if ((prev && isSame(curr, prev)) || (next && isSame(curr, next))) {
@@ -258,7 +268,6 @@ const SimulacioGrupsPage: React.FC = () => {
 
   const totalMatches = groups.reduce((acc, g) => acc + g.matches.length, 0);
   const completedMatches = groups.reduce((acc, g) => acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0);
-  const progress = totalMatches > 0 ? (completedMatches / totalMatches) * 100 : 0;
 
   // --- Sub-componente de Fila ---
   const TeamRow = ({ team, index, isDraggable, provided, snapshot }: any) => (
@@ -270,19 +279,34 @@ const SimulacioGrupsPage: React.FC = () => {
     >
       <td className="px-4 py-4 text-center font-bold text-xs relative">
         {index + 1}
-        {isDraggable && <span className="absolute left-1 top-1 text-[8px] text-brand-orange animate-pulse">⠿</span>}
       </td>
       <td className="px-4 py-4">
         <div className="flex items-center gap-3">
-          <img src={team.flag} alt="" className="w-6 h-4 object-contain" />
-          <span className={`font-bold text-xs ${isDraggable ? 'text-brand-orange' : ''}`}>{team.name}</span>
+          <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm" />
+          <div className="flex items-center gap-2">
+            <span className={`font-bold text-xs uppercase ${team.needsFairPlay ? 'text-brand-orange' : 'text-white'}`}>
+              {team.name}
+            </span>
+            {team.needsFairPlay && (
+              <div className="flex items-center gap-1.5">
+                <span className="bg-brand-orange text-brand-blue-deep text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm tracking-tighter">
+                  EMPATADO
+                </span>
+                <span className="text-brand-orange font-bold text-sm animate-pulse cursor-grab">
+                  ⠿
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </td>
       <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
       <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
       <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
-      <td className={`px-2 py-4 text-center text-[10px] font-bold ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>{team.dg}</td>
-      <td className={`px-4 py-4 text-center font-black text-md ${index < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/20'}`}>{team.pts}</td>
+      <td className={`px-2 py-4 text-center text-[10px] font-bold ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
+        {team.dg >= 0 ? `+${team.dg}` : team.dg}
+      </td>
+      <td className={`px-4 py-4 text-center font-black text-md ${index < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/50'}`}>{team.pts}</td>
     </tr>
   );
 
@@ -296,7 +320,7 @@ const SimulacioGrupsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
-    <style>{`
+      <style>{`
         input.no-spinner::-webkit-outer-spin-button,
         input.no-spinner::-webkit-inner-spin-button {
           -webkit-appearance: none;
@@ -306,6 +330,7 @@ const SimulacioGrupsPage: React.FC = () => {
           -moz-appearance: textfield;
         }
       `}</style>
+      
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
@@ -356,18 +381,18 @@ const SimulacioGrupsPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <input 
-                          type="number" 
-                          value={match.homeScore} 
-                          onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
-                          className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
-                        />
+                        type="number" 
+                        value={match.homeScore} 
+                        onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
+                        className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
+                      />
                       <span className="text-brand-text-dim font-black">-</span>
                       <input 
-                          type="number" 
-                          value={match.homeScore} 
-                          onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
-                          className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
-                        />
+                        type="number" 
+                        value={match.awayScore} 
+                        onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
+                        className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
+                      />
                     </div>
                     <div className="flex-1 flex flex-col items-center gap-3">
                       <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain" />
@@ -417,37 +442,31 @@ const SimulacioGrupsPage: React.FC = () => {
                 </table>
               </div>
 
-              {/* CUADRO EXPLICATIVO EXACTO (CRITERIOS MUNDIAL 2026) */}
-                <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
-                  <div className="flex items-start gap-3">
-                    {/* Icono de advertencia */}
-                    <svg className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-    
-                    <div className="space-y-3">
-                      <h3 className="text-brand-orange text-sm font-black uppercase tracking-widest">
-                        ⚠️ CRITERIS DE DESEMPAT (Mundial 2026)
-                      </h3>
-      
-                      <p className="text-[11px] text-brand-text-dim leading-relaxed">
-                        Des de 2026, l'ordre es decideix <strong className="text-white">primer</strong> pel <strong className="text-white">resultat de l'enfrontament directe</strong> entre els equips implicats:
-                      </p>
-
-                      <ol className="text-[11px] text-brand-text-dim space-y-2 list-decimal ml-4">
-                        <li><strong>Major diferència de gols en els partits entre les seleccions en qüestió.</strong></li>
-                        <li><strong>Major nombre de gols marcats en els partits entre les seleccions implicades.</strong></li>
-                        <li><strong>Major diferència de gols en tots els partits del grup.</strong></li>
-                        <li><strong>Major nombre de gols marcats en tota la fase de grups.</strong></li>
-                        <li><strong>Millor conducta esportiva</strong> (targetes grogues/vermelles).</li>
-                      </ol>
-
-                      <p className="text-[10px] text-brand-orange italic mt-2">
-                        * Si més de 2 seleccions estan empatades, s'apliquen aquests criteris en l'ordre indicat considerant NOMÉS els enfrontaments directes. En cas de persistir l'empat absolut, utilitza el marcador ⠿ per a l'ordre manual (Fair Play).
-                      </p>
-                    </div>
+              <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div className="space-y-3">
+                    <h3 className="text-brand-orange text-sm font-black uppercase tracking-widest">
+                      ⚠️ CRITERIOS DE DESEMPATE (Mundial 2026)
+                    </h3>
+                    <p className="text-[11px] text-brand-text-dim leading-relaxed">
+                      Desde 2026, el orden se decide <strong className="text-white">primero</strong> por el <strong className="text-white">resultado del enfrentamiento directo</strong> entre los equipos implicados:
+                    </p>
+                    <ol className="text-[11px] text-brand-text-dim space-y-2 list-decimal ml-4">
+                      <li><strong>Mayor diferencia de goles en los partidos entre las selecciones en cuestión.</strong></li>
+                      <li><strong>Mayor número de goles marcados en los partidos entre las selecciones implicadas.</strong></li>
+                      <li><strong>Mayor diferencia de goles en todos los partidos del grupo.</strong></li>
+                      <li><strong>Mayor nombre de goles marcados en toda la fase de grupos.</strong></li>
+                      <li><strong>Mejor conducta deportiva</strong> (tarjetas amarillas/rojas).</li>
+                    </ol>
+                    <p className="text-[10px] text-brand-orange italic mt-2">
+                      * Si más de 2 selecciones están empatadas, se aplican estos criterios en el orden indicado considerando SOLO los enfrentamientos directos. En caso de persistir el empate absoluto, utiliza el marcador <span className="font-bold">⠿</span> para el orden manual (Fair Play).
+                    </p>
                   </div>
                 </div>
+              </div>
             </div>
           </section>
         </div>
