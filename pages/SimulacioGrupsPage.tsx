@@ -296,14 +296,20 @@ const SimulacioGrupsPage: React.FC = () => {
         .tie-block [data-rbd-placeholder-context-id] { display: none !important; }
       `}</style>
       
-      <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
+      <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6 relative">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
             <Logo />
             <div className="h-8 w-px bg-brand-blue-light hidden md:block"></div>
             <div>
               <h1 className="text-xl font-black uppercase tracking-tight">Simulación — Fase de Grupos</h1>
-              <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
+                {/* INDICADOR PEQUEÑO DE PROGRESO JUNTO AL TEXTO */}
+                <span className="text-[10px] text-brand-green font-black ml-2 bg-brand-green/10 px-2 py-0.5 rounded">
+                  {completedMatches}/{totalMatches} COMPLETADOS
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex gap-3">
@@ -319,6 +325,14 @@ const SimulacioGrupsPage: React.FC = () => {
               Siguiente fase →
             </button>
           </div>
+        </div>
+
+        {/* BARRA DE PROGRESO MINIMALISTA: Justo al final del header */}
+        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-blue-light/20">
+          <div 
+            className="h-full bg-brand-green transition-all duration-500 shadow-[0_0_8px_rgba(0,255,157,0.5)]"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
       </header>
 
