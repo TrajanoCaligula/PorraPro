@@ -215,21 +215,39 @@ const SimulacioGrupsPage: React.FC = () => {
 
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
+    
+    // 1. Si no hay destino o es la misma posición, cancelar
     if (!destination || (source.index === destination.index) || !activeGroup) return;
 
-    // Lógica de SWAP (Intercambio)
-    const teamA = activeTable[source.index].name;
-    const teamB = activeTable[destination.index].name;
+    // 2. Identificar los equipos implicados
+    const teamA = activeTable[source.index];
+    const teamB = activeTable[destination.index];
 
+    // 3. RESTRICCIÓN RIZANDO EL RIZO: 
+    // Solo permitimos el swap si AMBOS equipos necesitan Fair Play
+    // y además están empatados entre sí (tienen los mismos puntos)
+    if (!teamA.needsFairPlay || !teamB.needsFairPlay || teamA.pts !== teamB.pts) {
+      // Si intentas moverlo a un equipo no empatado, no hacemos nada (vuelve a su sitio)
+      return; 
+    }
+
+    // 4. Lógica de SWAP (Intercambio)
     const currentNames = manualOrders[activeGroupId] || activeTable.map(t => t.name);
     const updatedNames = [...currentNames];
 
-    const idxA = updatedNames.indexOf(teamA);
-    const idxB = updatedNames.indexOf(teamB);
+    const nameA = teamA.name;
+    const nameB = teamB.name;
+
+    const idxA = updatedNames.indexOf(nameA);
+    const idxB = updatedNames.indexOf(nameB);
     
+    // Intercambio de posiciones en el array de nombres
     [updatedNames[idxA], updatedNames[idxB]] = [updatedNames[idxB], updatedNames[idxA]];
 
-    setManualOrders(prev => ({ ...prev, [activeGroupId]: updatedNames }));
+    setManualOrders(prev => ({ 
+      ...prev, 
+      [activeGroupId]: updatedNames 
+    }));
   };
 
   const handleSavePredictions = async (showAlert = false) => {
