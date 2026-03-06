@@ -551,7 +551,5 @@ const SimulacioGrupsPage: React.FC = () => {
     </div>
   </div>
 )}
-  );
-};
 
 export default SimulacioGrupsPage;
