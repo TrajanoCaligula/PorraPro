@@ -296,6 +296,16 @@ const SimulacioGrupsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
+    <style>{`
+        input.no-spinner::-webkit-outer-spin-button,
+        input.no-spinner::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input.no-spinner[type=number] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
@@ -345,9 +355,19 @@ const SimulacioGrupsPage: React.FC = () => {
                       <span className="font-bold text-xs uppercase text-center">{match.home}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <input type="number" value={match.homeScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)} className="w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black focus:border-brand-green outline-none" />
+                      <input 
+                          type="number" 
+                          value={match.homeScore} 
+                          onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
+                          className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
+                        />
                       <span className="text-brand-text-dim font-black">-</span>
-                      <input type="number" value={match.awayScore} disabled={match.isLocked} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)} className="w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black focus:border-brand-green outline-none" />
+                      <input 
+                          type="number" 
+                          value={match.homeScore} 
+                          onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
+                          className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
+                        />
                     </div>
                     <div className="flex-1 flex flex-col items-center gap-3">
                       <img src={match.awayFlag} alt="" className="w-14 h-10 object-contain" />
@@ -397,21 +417,37 @@ const SimulacioGrupsPage: React.FC = () => {
                 </table>
               </div>
 
-              {/* LEYENDA ORIGINAL INTEGRADA CON EL ICONO SVG */}
-              <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light text-[10px] text-brand-text-dim">
-                <div className="flex items-start gap-3">
-                  <svg className="w-4 h-4 text-brand-orange shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <div className="space-y-2">
-                    <p className="font-bold text-brand-orange uppercase tracking-wider">Desempate por Fair Play requerido</p>
-                    <p>
-                      Se ha detectado un **empate total** (puntos, DG, GF y enfrentamiento directo idénticos). 
-                      Utiliza el icono <span className="text-brand-orange font-bold">⠿</span> para arrastrar y ordenar manualmente según los puntos de Fair Play o sorteo oficial.
-                    </p>
+              {/* CUADRO EXPLICATIVO EXACTO (CRITERIOS MUNDIAL 2026) */}
+                <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
+                  <div className="flex items-start gap-3">
+                    {/* Icono de advertencia */}
+                    <svg className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+    
+                    <div className="space-y-3">
+                      <h3 className="text-brand-orange text-sm font-black uppercase tracking-widest">
+                        ⚠️ CRITERIS DE DESEMPAT (Mundial 2026)
+                      </h3>
+      
+                      <p className="text-[11px] text-brand-text-dim leading-relaxed">
+                        Des de 2026, l'ordre es decideix <strong className="text-white">primer</strong> pel <strong className="text-white">resultat de l'enfrontament directe</strong> entre els equips implicats:
+                      </p>
+
+                      <ol className="text-[11px] text-brand-text-dim space-y-2 list-decimal ml-4">
+                        <li><strong>Major diferència de gols en els partits entre les seleccions en qüestió.</strong></li>
+                        <li><strong>Major nombre de gols marcats en els partits entre les seleccions implicades.</strong></li>
+                        <li><strong>Major diferència de gols en tots els partits del grup.</strong></li>
+                        <li><strong>Major nombre de gols marcats en tota la fase de grups.</strong></li>
+                        <li><strong>Millor conducta esportiva</strong> (targetes grogues/vermelles).</li>
+                      </ol>
+
+                      <p className="text-[10px] text-brand-orange italic mt-2">
+                        * Si més de 2 seleccions estan empatades, s'apliquen aquests criteris en l'ordre indicat considerant NOMÉS els enfrontaments directes. En cas de persistir l'empat absolut, utilitza el marcador ⠿ per a l'ordre manual (Fair Play).
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
             </div>
           </section>
         </div>
