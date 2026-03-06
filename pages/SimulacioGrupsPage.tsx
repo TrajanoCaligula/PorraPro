@@ -135,7 +135,7 @@ const SimulacioGrupsPage: React.FC = () => {
     fetchInitialData();
   }, [poolCode, navigate]);
 
-  // --- Lógica de Ordenación y Desempate ---
+  // --- Lógica de Ordenación ---
   const calculateTable = (group: Group): TeamStats[] => {
     const stats: Record<string, TeamStats> = {};
     group.teams.forEach(t => {
@@ -168,24 +168,15 @@ const SimulacioGrupsPage: React.FC = () => {
     const sorted = Object.values(stats).sort((a, b) => {
       if (b.pts !== a.pts) return b.pts - a.pts;
       
-      // 1. Enfrentamiento directo (H2H)
-      const h2h_a = a.headToHead[b.name];
-      const h2h_b = b.headToHead[a.name];
-      if (h2h_a && h2h_b) {
-        const diffH2H = (h2h_a.gf - h2h_a.gc) - (h2h_b.gf - h2h_b.gc);
-        if (diffH2H !== 0) return -diffH2H;
-        if (h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
-      }
-
-      // 2. Diferencia de goles general
       const dgA = a.gf - a.gc;
       const dgB = b.gf - b.gc;
       if (dgB !== dgA) return dgB - dgA;
-      
-      // 3. Goles a favor
       if (b.gf !== a.gf) return b.gf - a.gf;
 
-      // 4. Orden manual (Fair Play)
+      const h2h_a = a.headToHead[b.name];
+      const h2h_b = b.headToHead[a.name];
+      if (h2h_a && h2h_b && h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
+
       const groupManualOrder = manualOrders[group.id];
       if (groupManualOrder) {
         const idxA = groupManualOrder.indexOf(a.name);
@@ -195,7 +186,6 @@ const SimulacioGrupsPage: React.FC = () => {
       return a.name.localeCompare(b.name);
     }).map(s => ({ ...s, dg: s.gf - s.gc }));
 
-    // Detectar necesidad de Fair Play (Empate absoluto)
     for (let i = 0; i < sorted.length; i++) {
       const curr = sorted[i];
       const prev = sorted[i-1];
@@ -224,15 +214,22 @@ const SimulacioGrupsPage: React.FC = () => {
   };
 
   const onDragEnd = (result: DropResult) => {
-    if (!result.destination || !activeGroup) return;
-    const newOrder = Array.from(activeTable);
-    const [moved] = newOrder.splice(result.source.index, 1);
-    newOrder.splice(result.destination.index, 0, moved);
+    const { source, destination } = result;
+    if (!destination || (source.index === destination.index) || !activeGroup) return;
 
-    setManualOrders(prev => ({
-      ...prev,
-      [activeGroupId]: newOrder.map(t => t.name)
-    }));
+    // Lógica de SWAP (Intercambio)
+    const teamA = activeTable[source.index].name;
+    const teamB = activeTable[destination.index].name;
+
+    const currentNames = manualOrders[activeGroupId] || activeTable.map(t => t.name);
+    const updatedNames = [...currentNames];
+
+    const idxA = updatedNames.indexOf(teamA);
+    const idxB = updatedNames.indexOf(teamB);
+    
+    [updatedNames[idxA], updatedNames[idxB]] = [updatedNames[idxB], updatedNames[idxA]];
+
+    setManualOrders(prev => ({ ...prev, [activeGroupId]: updatedNames }));
   };
 
   const handleSavePredictions = async (showAlert = false) => {
@@ -275,11 +272,15 @@ const SimulacioGrupsPage: React.FC = () => {
       ref={provided?.innerRef}
       {...provided?.draggableProps}
       {...provided?.dragHandleProps}
-      className={`transition-all ${snapshot?.isDragging ? 'bg-brand-blue-light/50 shadow-2xl' : index < 2 ? 'bg-brand-green/5' : ''} ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:bg-white/5' : 'cursor-default'}`}
+      className={`transition-all duration-200 ${
+        snapshot?.isDragging 
+          ? 'bg-brand-blue-light border-2 border-brand-orange z-50 opacity-90' 
+          : snapshot?.isDraggingOver 
+            ? 'bg-brand-orange/20 outline outline-2 outline-brand-orange -outline-offset-2 shadow-inner' 
+            : index < 2 ? 'bg-brand-green/5' : ''
+      } ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:bg-white/5' : 'cursor-default'}`}
     >
-      <td className="px-4 py-4 text-center font-bold text-xs relative">
-        {index + 1}
-      </td>
+      <td className="px-4 py-4 text-center font-bold text-xs">{index + 1}</td>
       <td className="px-4 py-4">
         <div className="flex items-center gap-3">
           <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm" />
@@ -289,12 +290,10 @@ const SimulacioGrupsPage: React.FC = () => {
             </span>
             {team.needsFairPlay && (
               <div className="flex items-center gap-1.5">
-                <span className="bg-brand-orange text-brand-blue-deep text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm tracking-tighter">
+                <span className="bg-brand-orange text-brand-blue-deep text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">
                   EMPATADO
                 </span>
-                <span className="text-brand-orange font-bold text-sm animate-pulse cursor-grab">
-                  ⠿
-                </span>
+                <span className="text-brand-orange font-bold text-sm animate-pulse">⠿</span>
               </div>
             )}
           </div>
@@ -321,14 +320,11 @@ const SimulacioGrupsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
       <style>{`
-        input.no-spinner::-webkit-outer-spin-button,
-        input.no-spinner::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
+        input.no-spinner::-webkit-outer-spin-button, input.no-spinner::-webkit-inner-spin-button {
+          -webkit-appearance: none; margin: 0;
         }
-        input.no-spinner[type=number] {
-          -moz-appearance: textfield;
-        }
+        input.no-spinner[type=number] { -moz-appearance: textfield; }
+        [data-rbd-placeholder-context-id] { display: none !important; }
       `}</style>
       
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
@@ -381,15 +377,13 @@ const SimulacioGrupsPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <input 
-                        type="number" 
-                        value={match.homeScore} 
+                        type="number" value={match.homeScore} 
                         onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
                         className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
                       />
                       <span className="text-brand-text-dim font-black">-</span>
                       <input 
-                        type="number" 
-                        value={match.awayScore} 
+                        type="number" value={match.awayScore} 
                         onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
                         className="no-spinner w-12 h-14 bg-brand-blue-deep border border-brand-blue-light rounded-xl text-center text-xl font-black outline-none focus:border-brand-green" 
                       />
@@ -424,16 +418,11 @@ const SimulacioGrupsPage: React.FC = () => {
                     <Droppable droppableId={`table-${activeGroupId}`}>
                       {(provided) => (
                         <tbody {...provided.droppableProps} ref={provided.innerRef} className="divide-y divide-brand-blue-light">
-                          {activeTable.map((team, i) => {
-                            if (team.needsFairPlay) {
-                              return (
-                                <Draggable key={team.name} draggableId={team.name} index={i}>
-                                  {(p, s) => <TeamRow team={team} index={i} isDraggable={true} provided={p} snapshot={s} />}
-                                </Draggable>
-                              );
-                            }
-                            return <TeamRow key={team.name} team={team} index={i} isDraggable={false} />;
-                          })}
+                          {activeTable.map((team, i) => (
+                            <Draggable key={team.name} draggableId={team.name} index={i} isDragDisabled={!team.needsFairPlay}>
+                              {(p, s) => <TeamRow team={team} index={i} isDraggable={team.needsFairPlay} provided={p} snapshot={s} />}
+                            </Draggable>
+                          ))}
                           {provided.placeholder}
                         </tbody>
                       )}
@@ -448,22 +437,16 @@ const SimulacioGrupsPage: React.FC = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                   <div className="space-y-3">
-                    <h3 className="text-brand-orange text-sm font-black uppercase tracking-widest">
-                      ⚠️ CRITERIOS DE DESEMPATE (Mundial 2026)
-                    </h3>
-                    <p className="text-[11px] text-brand-text-dim leading-relaxed">
-                      Desde 2026, el orden se decide <strong className="text-white">primero</strong> por el <strong className="text-white">resultado del enfrentamiento directo</strong> entre los equipos implicados:
-                    </p>
+                    <h3 className="text-brand-orange text-sm font-black uppercase tracking-widest">⚠️ CRITERIOS DE DESEMPATE (Mundial 2026)</h3>
+                    <p className="text-[11px] text-brand-text-dim leading-relaxed">Desde 2026, el orden se decide primero por el enfrentamiento directo.</p>
                     <ol className="text-[11px] text-brand-text-dim space-y-2 list-decimal ml-4">
-                      <li><strong>Mayor diferencia de goles en los partidos entre las selecciones en cuestión.</strong></li>
-                      <li><strong>Mayor número de goles marcados en los partidos entre las selecciones implicadas.</strong></li>
-                      <li><strong>Mayor diferencia de goles en todos los partidos del grupo.</strong></li>
-                      <li><strong>Mayor nombre de goles marcados en toda la fase de grupos.</strong></li>
-                      <li><strong>Mejor conducta deportiva</strong> (tarjetas amarillas/rojas).</li>
+                      <li><strong>Mayor diferencia de goles entre los implicados.</strong></li>
+                      <li><strong>Mayor número de goles marcados entre los implicados.</strong></li>
+                      <li><strong>Mayor diferencia de goles general.</strong></li>
+                      <li><strong>Mayor número de goles marcados general.</strong></li>
+                      <li><strong>Fair Play.</strong></li>
                     </ol>
-                    <p className="text-[10px] text-brand-orange italic mt-2">
-                      * Si más de 2 selecciones están empatadas, se aplican estos criterios en el orden indicado considerando SOLO los enfrentamientos directos. En caso de persistir el empate absoluto, utiliza el marcador <span className="font-bold">⠿</span> para el orden manual (Fair Play).
-                    </p>
+                    <p className="text-[10px] text-brand-orange italic mt-2">* En caso de empate absoluto, arrastra los equipos marcados con ⠿ para aplicar el Fair Play manual.</p>
                   </div>
                 </div>
               </div>
