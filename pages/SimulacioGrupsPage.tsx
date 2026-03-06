@@ -51,6 +51,9 @@ const SimulacioGrupsPage: React.FC = () => {
   const [activeGroupId, setActiveGroupId] = useState('A');
   const [loading, setLoading] = useState(true);
   const [manualOrders, setManualOrders] = useState<Record<string, string[]>>({});
+  
+  // Estado para controlar el equipo que se está arrastrando actualmente
+  const [draggingTeam, setDraggingTeam] = useState<TeamStats | null>(null);
 
   // --- Carga de Datos ---
   useEffect(() => {
@@ -167,16 +170,13 @@ const SimulacioGrupsPage: React.FC = () => {
 
     const sorted = Object.values(stats).sort((a, b) => {
       if (b.pts !== a.pts) return b.pts - a.pts;
-      
       const dgA = a.gf - a.gc;
       const dgB = b.gf - b.gc;
       if (dgB !== dgA) return dgB - dgA;
       if (b.gf !== a.gf) return b.gf - a.gf;
-
       const h2h_a = a.headToHead[b.name];
       const h2h_b = b.headToHead[a.name];
       if (h2h_a && h2h_b && h2h_a.gf !== h2h_b.gf) return h2h_b.gf - h2h_a.gf;
-
       const groupManualOrder = manualOrders[group.id];
       if (groupManualOrder) {
         const idxA = groupManualOrder.indexOf(a.name);
@@ -193,7 +193,6 @@ const SimulacioGrupsPage: React.FC = () => {
       const isSame = (t1: TeamStats, t2: TeamStats) => 
         t1 && t2 && t1.pts === t2.pts && (t1.gf - t1.gc) === (t2.gf - t2.gc) && t1.gf === t2.gf &&
         t1.headToHead[t2.name]?.gf === t2.headToHead[t1.name]?.gf;
-
       if ((prev && isSame(curr, prev)) || (next && isSame(curr, next))) {
         curr.needsFairPlay = true;
       }
@@ -213,41 +212,29 @@ const SimulacioGrupsPage: React.FC = () => {
     })));
   };
 
-  const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
-    
-    // 1. Si no hay destino o es la misma posición, cancelar
-    if (!destination || (source.index === destination.index) || !activeGroup) return;
+  const onDragStart = (start: any) => {
+    const team = activeTable[start.source.index];
+    setDraggingTeam(team);
+  };
 
-    // 2. Identificar los equipos implicados
+  const onDragEnd = (result: DropResult) => {
+    setDraggingTeam(null);
+    const { source, destination } = result;
+    if (!destination || source.index === destination.index || !activeGroup) return;
+    
     const teamA = activeTable[source.index];
     const teamB = activeTable[destination.index];
 
-    // 3. RESTRICCIÓN RIZANDO EL RIZO: 
-    // Solo permitimos el swap si AMBOS equipos necesitan Fair Play
-    // y además están empatados entre sí (tienen los mismos puntos)
-    if (!teamA.needsFairPlay || !teamB.needsFairPlay || teamA.pts !== teamB.pts) {
-      // Si intentas moverlo a un equipo no empatado, no hacemos nada (vuelve a su sitio)
-      return; 
-    }
+    // RESTRICCIÓN: Solo Swap si el destino está empatado con el origen
+    if (!teamB.needsFairPlay || teamA.pts !== teamB.pts) return;
 
-    // 4. Lógica de SWAP (Intercambio)
     const currentNames = manualOrders[activeGroupId] || activeTable.map(t => t.name);
     const updatedNames = [...currentNames];
-
-    const nameA = teamA.name;
-    const nameB = teamB.name;
-
-    const idxA = updatedNames.indexOf(nameA);
-    const idxB = updatedNames.indexOf(nameB);
+    const idxA = updatedNames.indexOf(teamA.name);
+    const idxB = updatedNames.indexOf(teamB.name);
     
-    // Intercambio de posiciones en el array de nombres
     [updatedNames[idxA], updatedNames[idxB]] = [updatedNames[idxB], updatedNames[idxA]];
-
-    setManualOrders(prev => ({ 
-      ...prev, 
-      [activeGroupId]: updatedNames 
-    }));
+    setManualOrders(prev => ({ ...prev, [activeGroupId]: updatedNames }));
   };
 
   const handleSavePredictions = async (showAlert = false) => {
@@ -256,7 +243,6 @@ const SimulacioGrupsPage: React.FC = () => {
       const userId = localStorage.getItem('user_id');
       const { data: poolData } = await supabase.from('Pools').select('idPool').eq('code', poolCode).single();
       if (!poolData || !userId) throw new Error("Sesión no válida");
-
       const predictionsToSave = groups.flatMap(group => 
         group.matches
           .filter(m => m.homeScore !== '' && m.awayScore !== '' && !m.isLocked)
@@ -267,7 +253,6 @@ const SimulacioGrupsPage: React.FC = () => {
                           parseInt(match.awayScore) > parseInt(match.homeScore) ? match.awayId : null
           }))
       );
-
       if (predictionsToSave.length > 0) {
         await supabase.from('Predictions').upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
       }
@@ -285,47 +270,56 @@ const SimulacioGrupsPage: React.FC = () => {
   const completedMatches = groups.reduce((acc, g) => acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0);
 
   // --- Sub-componente de Fila ---
-  const TeamRow = ({ team, index, isDraggable, provided, snapshot }: any) => (
-    <tr
-      ref={provided?.innerRef}
-      {...provided?.draggableProps}
-      {...provided?.dragHandleProps}
-      className={`transition-all duration-200 ${
-        snapshot?.isDragging 
-          ? 'bg-brand-blue-light border-2 border-brand-orange z-50 opacity-90' 
-          : snapshot?.isDraggingOver 
-            ? 'bg-brand-orange/20 outline outline-2 outline-brand-orange -outline-offset-2 shadow-inner' 
-            : index < 2 ? 'bg-brand-green/5' : ''
-      } ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:bg-white/5' : 'cursor-default'}`}
-    >
-      <td className="px-4 py-4 text-center font-bold text-xs">{index + 1}</td>
-      <td className="px-4 py-4">
-        <div className="flex items-center gap-3">
-          <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm" />
-          <div className="flex items-center gap-2">
-            <span className={`font-bold text-xs uppercase ${team.needsFairPlay ? 'text-brand-orange' : 'text-white'}`}>
-              {team.name}
-            </span>
-            {team.needsFairPlay && (
-              <div className="flex items-center gap-1.5">
-                <span className="bg-brand-orange text-brand-blue-deep text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">
-                  EMPATADO
-                </span>
-                <span className="text-brand-orange font-bold text-sm animate-pulse">⠿</span>
-              </div>
-            )}
+  const TeamRow = ({ team, index, isDraggable, provided, snapshot, draggingTeam }: any) => {
+    // Validamos si este equipo es un destino válido para el swap
+    const isValidTarget = draggingTeam && team.needsFairPlay && draggingTeam.pts === team.pts;
+    const isOverValid = snapshot?.isDraggingOver && isValidTarget;
+    const isOverInvalid = snapshot?.isDraggingOver && !isValidTarget && !snapshot?.isDragging;
+
+    return (
+      <tr
+        ref={provided?.innerRef}
+        {...provided?.draggableProps}
+        {...provided?.dragHandleProps}
+        className={`transition-all duration-200 ${
+          snapshot?.isDragging 
+            ? 'bg-brand-blue-light border-2 border-brand-orange z-50 opacity-90 shadow-2xl scale-[1.01]' 
+            : isOverValid 
+              ? 'bg-brand-orange/20 outline outline-2 outline-brand-orange -outline-offset-2' 
+              : isOverInvalid
+                ? 'opacity-40 grayscale-[0.5]' // Feedback visual de que aquí no puedes soltar
+                : index < 2 ? 'bg-brand-green/5' : ''
+        } ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:bg-white/5' : 'cursor-default'}`}
+      >
+        <td className="px-4 py-4 text-center font-bold text-xs">{index + 1}</td>
+        <td className="px-4 py-4">
+          <div className="flex items-center gap-3">
+            <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm" />
+            <div className="flex items-center gap-2">
+              <span className={`font-bold text-xs uppercase ${team.needsFairPlay ? 'text-brand-orange' : 'text-white'}`}>
+                {team.name}
+              </span>
+              {team.needsFairPlay && (
+                <div className="flex items-center gap-1.5">
+                  <span className="bg-brand-orange text-brand-blue-deep text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">
+                    EMPATADO
+                  </span>
+                  <span className="text-brand-orange font-bold text-sm animate-pulse">⠿</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </td>
-      <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
-      <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
-      <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
-      <td className={`px-2 py-4 text-center text-[10px] font-bold ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
-        {team.dg >= 0 ? `+${team.dg}` : team.dg}
-      </td>
-      <td className={`px-4 py-4 text-center font-black text-md ${index < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/50'}`}>{team.pts}</td>
-    </tr>
-  );
+        </td>
+        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
+        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
+        <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
+        <td className={`px-2 py-4 text-center text-[10px] font-bold ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
+          {team.dg >= 0 ? `+${team.dg}` : team.dg}
+        </td>
+        <td className={`px-4 py-4 text-center font-black text-md ${index < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/50'}`}>{team.pts}</td>
+      </tr>
+    );
+  };
 
   if (loading || !activeGroup) {
     return (
@@ -342,6 +336,9 @@ const SimulacioGrupsPage: React.FC = () => {
           -webkit-appearance: none; margin: 0;
         }
         input.no-spinner[type=number] { -moz-appearance: textfield; }
+        
+        /* BLOQUEO DE MOVIMIENTO DE FILAS: Esto hace que nada se mueva hasta soltar */
+        [data-rbd-draggable-context-id] { transform: none !important; transition: none !important; }
         [data-rbd-placeholder-context-id] { display: none !important; }
       `}</style>
       
@@ -432,13 +429,22 @@ const SimulacioGrupsPage: React.FC = () => {
                       <th className="px-4 py-4 text-center bg-brand-blue-light/50 text-white">Pts</th>
                     </tr>
                   </thead>
-                  <DragDropContext onDragEnd={onDragEnd}>
+                  <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
                     <Droppable droppableId={`table-${activeGroupId}`}>
                       {(provided) => (
                         <tbody {...provided.droppableProps} ref={provided.innerRef} className="divide-y divide-brand-blue-light">
                           {activeTable.map((team, i) => (
                             <Draggable key={team.name} draggableId={team.name} index={i} isDragDisabled={!team.needsFairPlay}>
-                              {(p, s) => <TeamRow team={team} index={i} isDraggable={team.needsFairPlay} provided={p} snapshot={s} />}
+                              {(p, s) => (
+                                <TeamRow 
+                                  team={team} 
+                                  index={i} 
+                                  isDraggable={team.needsFairPlay} 
+                                  provided={p} 
+                                  snapshot={s} 
+                                  draggingTeam={draggingTeam}
+                                />
+                              )}
                             </Draggable>
                           ))}
                           {provided.placeholder}
