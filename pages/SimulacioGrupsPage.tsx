@@ -286,7 +286,6 @@ const SimulacioGrupsPage: React.FC = () => {
   }
 
   return (
-    return (
     <div className="min-h-screen bg-brand-blue-deep text-white flex flex-col font-sans">
       <style>{`
         input.no-spinner::-webkit-outer-spin-button, input.no-spinner::-webkit-inner-spin-button {
