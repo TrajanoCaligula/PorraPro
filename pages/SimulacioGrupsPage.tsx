@@ -297,56 +297,55 @@ const SimulacioGrupsPage: React.FC = () => {
       `}</style>
       
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-4">
-            <Logo />
-            <div className="h-8 w-px bg-brand-blue-light hidden md:block"></div>
-            <div>
-              <h1 className="text-xl font-black uppercase tracking-tight">Simulación — Fase de Grupos</h1>
-              <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-            {/* LA BARRA A LA IZQUIERDA DEL BOTÓN GUARDAR */}
-            <div className="hidden sm:flex flex-col items-end gap-1.5">
-              <div className="flex justify-between w-32">
-                <span className="text-[9px] font-black text-brand-text-dim uppercase tracking-tighter">Progreso</span>
-                <span className="text-[9px] font-black text-brand-green uppercase">{Math.round(progressPercent)}%</span>
-              </div>
-              <div className="w-32 h-1 bg-brand-blue-deep rounded-full overflow-hidden border border-brand-blue-light/30">
-                <div 
-                  className="h-full bg-brand-green transition-all duration-500 shadow-[0_0_8px_rgba(0,255,157,0.4)]"
-                  style={{ width: `${progressPercent}%` }}
-                />
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-4">
+              <Logo />
+              <div className="h-8 w-px bg-brand-blue-light hidden md:block"></div>
+              <div>
+                <h1 className="text-xl font-black uppercase tracking-tight">Simulación — Fase de Grupos</h1>
+                <p className="text-xs text-brand-text-dim uppercase font-bold tracking-widest">Mundial 2026</p>
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <button 
-                onClick={() => handleSavePredictions(true)} 
-                className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-colors"
-              >
-                Guardar
-              </button>
-              <button 
-                onClick={async () => {
-                  const saved = await handleSavePredictions(false);
-                  if (saved) navigate(`/simulacion-finales/${poolCode}`);
-                }}
-                disabled={completedMatches < totalMatches}
-                className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
-                  completedMatches === totalMatches 
-                    ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20 cursor-pointer' 
-                    : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
-                }`}
-              >
-                Siguiente fase →
-              </button>
+            <div className="flex items-center gap-5">
+              {/* LA BARRA: Compacta, numérica y a la izquierda */}
+              <div className="hidden sm:flex flex-col items-end gap-1">
+                <span className="text-[10px] font-black text-brand-green uppercase tracking-tighter">
+                  {completedMatches} / {totalMatches} PARTIDOS
+                </span>
+                <div className="w-20 h-1 bg-brand-blue-deep rounded-full overflow-hidden border border-brand-blue-light/20">
+                  <div 
+                    className="h-full bg-brand-green transition-all duration-500"
+                    style={{ width: `${(completedMatches / totalMatches) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => handleSavePredictions(true)} 
+                  className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-colors"
+                >
+                  Guardar
+                </button>
+                <button 
+                  onClick={async () => {
+                    const saved = await handleSavePredictions(false);
+                    if (saved) navigate(`/simulacion-finales/${poolCode}`);
+                  }}
+                  disabled={completedMatches < totalMatches}
+                  className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
+                    completedMatches === totalMatches 
+                      ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' 
+                      : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
+                  }`}
+                >
+                  Siguiente fase →
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       {/* BARRA DE PROGRESO */}
       <div className="bg-brand-blue-mid/30 border-b border-brand-blue-light/50 py-3">
