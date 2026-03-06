@@ -52,7 +52,7 @@ const SimulacioGrupsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [manualOrders, setManualOrders] = useState<Record<string, string[]>>({});
 
-  // --- Carga de Datos de Supabase ---
+  // --- Carga de Datos ---
   useEffect(() => {
     const fetchInitialData = async () => {
       setLoading(true);
@@ -133,7 +133,7 @@ const SimulacioGrupsPage: React.FC = () => {
     fetchInitialData();
   }, [poolCode, navigate]);
 
-  // --- Lógica de Cálculo de Tabla ---
+  // --- Lógica de Tabla ---
   const calculateTable = (group: Group): TeamStats[] => {
     const stats: Record<string, TeamStats> = {};
     group.teams.forEach(t => {
@@ -163,7 +163,6 @@ const SimulacioGrupsPage: React.FC = () => {
       }
     });
 
-    // Ordenación base (Puntos -> DG -> GF -> H2H -> Manual)
     const sorted = Object.values(stats).sort((a, b) => {
       if (b.pts !== a.pts) return b.pts - a.pts;
       const dgA = a.gf - a.gc;
@@ -183,7 +182,6 @@ const SimulacioGrupsPage: React.FC = () => {
       return a.name.localeCompare(b.name);
     }).map(s => ({ ...s, dg: s.gf - s.gc }));
 
-    // Marcar quienes necesitan Fair Play (empate absoluto tras H2H)
     for (let i = 0; i < sorted.length; i++) {
       const curr = sorted[i];
       const prev = sorted[i-1];
@@ -191,7 +189,6 @@ const SimulacioGrupsPage: React.FC = () => {
       const isSame = (t1: TeamStats, t2: TeamStats) => 
         t1 && t2 && t1.pts === t2.pts && (t1.gf - t1.gc) === (t2.gf - t2.gc) && t1.gf === t2.gf &&
         t1.headToHead[t2.name]?.gf === t2.headToHead[t1.name]?.gf;
-
       if ((prev && isSame(curr, prev)) || (next && isSame(curr, next))) {
         curr.needsFairPlay = true;
       }
@@ -202,20 +199,15 @@ const SimulacioGrupsPage: React.FC = () => {
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || null, [groups, activeGroupId]);
   const activeTable = useMemo(() => activeGroup ? calculateTable(activeGroup) : [], [activeGroup, manualOrders]);
 
-  // --- NUEVA LÓGICA: Agrupar por bloques estancos de empate ---
+  // --- BLOQUES DE EMPATE (PARA DND) ---
   const tableBlocks = useMemo(() => {
     const blocks: TeamStats[][] = [];
     if (activeTable.length === 0) return blocks;
-
     let currentBlock: TeamStats[] = [activeTable[0]];
-
     for (let i = 1; i < activeTable.length; i++) {
       const prev = activeTable[i - 1];
       const curr = activeTable[i];
-
-      // Si están empatados de forma absoluta, van al mismo bloque Droppable
       const isAbsoluteTie = curr.pts === prev.pts && curr.needsFairPlay && prev.needsFairPlay;
-
       if (isAbsoluteTie) {
         currentBlock.push(curr);
       } else {
@@ -239,23 +231,15 @@ const SimulacioGrupsPage: React.FC = () => {
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
     if (!destination || source.droppableId !== destination.droppableId || source.index === destination.index) return;
-
-    // Identificamos el bloque de equipos donde se produjo el swap
     const blockIdx = parseInt(source.droppableId.split('-')[1]);
     const block = tableBlocks[blockIdx];
-    
     const teamA = block[source.index];
     const teamB = block[destination.index];
-
     const currentNames = manualOrders[activeGroupId] || activeTable.map(t => t.name);
     const updatedNames = [...currentNames];
-    
     const idxA = updatedNames.indexOf(teamA.name);
     const idxB = updatedNames.indexOf(teamB.name);
-    
-    // Intercambio de posiciones (Swap)
     [updatedNames[idxA], updatedNames[idxB]] = [updatedNames[idxB], updatedNames[idxA]];
-
     setManualOrders(prev => ({ ...prev, [activeGroupId]: updatedNames }));
   };
 
@@ -265,7 +249,6 @@ const SimulacioGrupsPage: React.FC = () => {
       const userId = localStorage.getItem('user_id');
       const { data: poolData } = await supabase.from('Pools').select('idPool').eq('code', poolCode).single();
       if (!poolData || !userId) throw new Error("Sesión no válida");
-
       const predictionsToSave = groups.flatMap(group => 
         group.matches
           .filter(m => m.homeScore !== '' && m.awayScore !== '' && !m.isLocked)
@@ -276,11 +259,10 @@ const SimulacioGrupsPage: React.FC = () => {
                           parseInt(match.awayScore) > parseInt(match.homeScore) ? match.awayId : null
           }))
       );
-
       if (predictionsToSave.length > 0) {
         await supabase.from('Predictions').upsert(predictionsToSave, { onConflict: 'idUser,idPool,idMatch' });
       }
-      if (showAlert) alert("¡Cambios guardados correctamente!");
+      if (showAlert) alert("¡Cambios guardados!");
       return true;
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -290,8 +272,10 @@ const SimulacioGrupsPage: React.FC = () => {
     }
   };
 
+  // --- LÓGICA DE PROGRESO ---
   const totalMatches = groups.reduce((acc, g) => acc + g.matches.length, 0);
   const completedMatches = groups.reduce((acc, g) => acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0);
+  const progressPercent = totalMatches > 0 ? (completedMatches / totalMatches) * 100 : 0;
 
   if (loading || !activeGroup) {
     return (
@@ -308,11 +292,7 @@ const SimulacioGrupsPage: React.FC = () => {
           -webkit-appearance: none; margin: 0;
         }
         input.no-spinner[type=number] { -moz-appearance: textfield; }
-        
-        /* BLOQUEO DE MOVIMIENTO DE FILAS: Anula la animación de desplazamiento de la librería */
         [data-rbd-draggable-context-id] { transition: none !important; }
-        
-        /* OCULTAR PLACEHOLDER: Evita que la tabla se abra al arrastrar */
         .tie-block [data-rbd-placeholder-context-id] { display: none !important; }
       `}</style>
       
@@ -334,13 +314,29 @@ const SimulacioGrupsPage: React.FC = () => {
                 if (saved) navigate(`/simulacion-finales/${poolCode}`);
               }}
               disabled={completedMatches < totalMatches}
-              className={`px-6 py-2 rounded-lg text-xs font-black uppercase ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
+              className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${completedMatches === totalMatches ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'}`}
             >
               Siguiente fase →
             </button>
           </div>
         </div>
       </header>
+
+      {/* BARRA DE PROGRESO */}
+      <div className="bg-brand-blue-mid/30 border-b border-brand-blue-light/50 py-3">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-brand-text-dim">Progreso de simulación</span>
+            <span className="text-[10px] font-black text-brand-green">{completedMatches} / {totalMatches} Partidos</span>
+          </div>
+          <div className="h-1.5 w-full bg-brand-blue-deep rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-brand-green transition-all duration-500 ease-out shadow-[0_0_10px_rgba(0,255,157,0.3)]"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
 
       <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex px-6">
@@ -408,12 +404,8 @@ const SimulacioGrupsPage: React.FC = () => {
                   
                   <DragDropContext onDragEnd={onDragEnd}>
                     {tableBlocks.map((block, blockIdx) => (
-                      <Droppable 
-                        key={`block-${blockIdx}`} 
-                        droppableId={`block-${blockIdx}`}
-                        isDropDisabled={block.length <= 1} // No permite soltar si el bloque es de 1 solo equipo
-                      >
-                        {(provided, snapshot) => (
+                      <Droppable key={`block-${blockIdx}`} droppableId={`block-${blockIdx}`} isDropDisabled={block.length <= 1}>
+                        {(provided) => (
                           <tbody 
                             {...provided.droppableProps} 
                             ref={provided.innerRef}
@@ -422,14 +414,8 @@ const SimulacioGrupsPage: React.FC = () => {
                             {block.map((team, i) => {
                               const realIndex = activeTable.findIndex(t => t.name === team.name);
                               const isDraggable = team.needsFairPlay && block.length > 1;
-                              
                               return (
-                                <Draggable 
-                                  key={team.name} 
-                                  draggableId={team.name} 
-                                  index={i} 
-                                  isDragDisabled={!isDraggable}
-                                >
+                                <Draggable key={team.name} draggableId={team.name} index={i} isDragDisabled={!isDraggable}>
                                   {(p, s) => (
                                     <tr
                                       ref={p.innerRef}
@@ -448,14 +434,10 @@ const SimulacioGrupsPage: React.FC = () => {
                                         <div className="flex items-center gap-3">
                                           <img src={team.flag} alt="" className="w-6 h-4 object-contain rounded-sm" />
                                           <div className="flex items-center gap-2">
-                                            <span className={`font-bold text-xs uppercase ${team.needsFairPlay ? 'text-brand-orange' : 'text-white'}`}>
-                                              {team.name}
-                                            </span>
+                                            <span className={`font-bold text-xs uppercase ${team.needsFairPlay ? 'text-brand-orange' : 'text-white'}`}>{team.name}</span>
                                             {team.needsFairPlay && block.length > 1 && (
                                               <div className="flex items-center gap-1.5">
-                                                <span className="bg-brand-orange text-brand-blue-deep text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">
-                                                  EMPATADO
-                                                </span>
+                                                <span className="bg-brand-orange text-brand-blue-deep text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">EMPATADO</span>
                                                 <span className="text-brand-orange font-bold text-sm animate-pulse">⠿</span>
                                               </div>
                                             )}
@@ -465,7 +447,7 @@ const SimulacioGrupsPage: React.FC = () => {
                                       <td className="px-2 py-4 text-center text-[10px] font-mono">{team.pj}</td>
                                       <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gf}</td>
                                       <td className="px-2 py-4 text-center text-[10px] font-mono">{team.gc}</td>
-                                      <td className={`px-2 py-4 text-center text-[10px] font-bold ${team.dg > 0 ? 'text-brand-green' : team.dg < 0 ? 'text-red-400' : ''}`}>
+                                      <td className={`px-2 py-4 text-center text-[10px] font-bold ${team.dg >= 0 ? 'text-brand-green' : 'text-red-400'}`}>
                                         {team.dg >= 0 ? `+${team.dg}` : team.dg}
                                       </td>
                                       <td className={`px-4 py-4 text-center font-black text-md ${realIndex < 2 ? 'text-brand-green bg-brand-green/10' : 'bg-brand-blue-light/50'}`}>
@@ -485,7 +467,7 @@ const SimulacioGrupsPage: React.FC = () => {
                 </table>
               </div>
 
-              {/* LEYENDA */}
+              {/* LEYENDA DETALLADA (TUVERSIÓN) */}
               <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
                 <div className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -493,7 +475,7 @@ const SimulacioGrupsPage: React.FC = () => {
                   </svg>
                   <div className="space-y-3">
                     <h3 className="text-brand-orange text-sm font-black uppercase tracking-widest">⚠️ CRITERIOS DE DESEMPATE (Mundial 2026)</h3>
-                    <p className="text-[11px] text-brand-text-dim leading-relaxed">Desde 2026, el orden se decide primero por el enfrentamiento directo.</p>
+                    <p className="text-[11px] text-brand-text-dim leading-relaxed">Desde 2026, el orden se decide primero por el enfrentamiento directo:</p>
                     <ol className="text-[11px] text-brand-text-dim space-y-2 list-decimal ml-4">
                       <li><strong>Mayor diferencia de goles entre los implicados.</strong></li>
                       <li><strong>Mayor número de goles marcados entre los implicados.</strong></li>
@@ -515,4 +497,3 @@ const SimulacioGrupsPage: React.FC = () => {
 };
 
 export default SimulacioGrupsPage;
-              
