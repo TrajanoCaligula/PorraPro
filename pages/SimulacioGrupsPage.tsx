@@ -71,7 +71,7 @@ const SimulacioGrupsPage: React.FC = () => {
           return;
         }
 
-        const activePoolId = participation.idPool;
+        const activePoolId = (participation as any).idPool;
         const [teamsRes, matchesRes, predictionsRes] = await Promise.all([
           supabase.from('Teams').select('idTeam, name, flag_url, group_name').order('group_name', { ascending: true }),
           supabase.from('Matches').select(`
@@ -98,7 +98,7 @@ const SimulacioGrupsPage: React.FC = () => {
           const matchesInGroup = dbMatches
             .filter(m => m.group_name === letter)
             .filter(m => m.homeTeam && m.awayTeam)
-            .map((m) => {
+            .map((m: any) => {
               const savedPred = existingPredictions.find(p => p.idMatch === m.idMatch);
               return {
                 id: m.idMatch.toString(),
@@ -200,7 +200,6 @@ const SimulacioGrupsPage: React.FC = () => {
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || null, [groups, activeGroupId]);
   const activeTable = useMemo(() => activeGroup ? calculateTable(activeGroup) : [], [activeGroup, manualOrders]);
 
-  // --- BLOQUES DE EMPATE (PARA DND) ---
   const tableBlocks = useMemo(() => {
     const blocks: TeamStats[][] = [];
     if (activeTable.length === 0) return blocks;
@@ -273,7 +272,6 @@ const SimulacioGrupsPage: React.FC = () => {
     }
   };
 
-  // --- LÓGICA DE PROGRESO ---
   const totalMatches = groups.reduce((acc, g) => acc + g.matches.length, 0);
   const completedMatches = groups.reduce((acc, g) => acc + g.matches.filter(m => m.homeScore !== '' && m.awayScore !== '').length, 0);
   const progressPercent = totalMatches > 0 ? (completedMatches / totalMatches) * 100 : 0;
@@ -295,9 +293,7 @@ const SimulacioGrupsPage: React.FC = () => {
         input.no-spinner[type=number] { -moz-appearance: textfield; }
         [data-rbd-draggable-context-id] { transition: none !important; }
         .tie-block [data-rbd-placeholder-context-id] { display: none !important; }
-      `}`</style>
-      
-      {/* HEADER: Limpio, sin la barrita pequeña de antes para no duplicar */}
+      `}</style>
 
       <header className="bg-brand-blue-mid border-b border-brand-blue-light p-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
@@ -311,7 +307,6 @@ const SimulacioGrupsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            {/* LA BARRA DEL ARCHIVO SUBIDO: Ahora a la izquierda y pequeña */}
             <div className="hidden sm:block w-48">
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[9px] font-black uppercase tracking-widest text-brand-text-dim">Progreso de simulación</span>
@@ -331,32 +326,31 @@ const SimulacioGrupsPage: React.FC = () => {
                 className="px-4 py-2 rounded-lg border border-brand-blue-light text-xs font-bold hover:bg-brand-blue-light transition-colors"
               >
                 Guardar
+              </button> {/* <-- CORREGIDO: Faltaba este cierre */}
+              
               <button 
-                  onClick={async () => {
-                    // Comprobamos si hay algún equipo con empate absoluto en cualquier grupo
-                    const hasTies = groups.some(g => calculateTable(g).some(t => t.needsFairPlay));
-    
-                    if (hasTies) {
-                      setShowTieWarning(true);
-                    } else {
-                      const saved = await handleSavePredictions(false);
-                      if (saved) navigate(`/simulacion-finales/${poolCode}`);
-                    }
-                  }}
-                  disabled={completedMatches < totalMatches}
-                  className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
-                    completedMatches === totalMatches 
-                      ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' 
-                      : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
-                  }`}
-                >
-                  Siguiente fase →
-                </button>
+                onClick={async () => {
+                  const hasTies = groups.some(g => calculateTable(g).some(t => t.needsFairPlay));
+                  if (hasTies) {
+                    setShowTieWarning(true);
+                  } else {
+                    const saved = await handleSavePredictions(false);
+                    if (saved) navigate(`/simulacion-finales/${poolCode}`);
+                  }
+                }}
+                disabled={completedMatches < totalMatches}
+                className={`px-6 py-2 rounded-lg text-xs font-black uppercase transition-all ${
+                  completedMatches === totalMatches 
+                    ? 'bg-brand-green text-brand-blue-deep shadow-lg shadow-brand-green/20' 
+                    : 'bg-brand-blue-light text-brand-text-dim cursor-not-allowed'
+                }`}
+              >
+                Siguiente fase →
+              </button>
             </div>
           </div>
         </div>
       </header>
-
 
       <nav className="bg-brand-blue-mid/50 border-b border-brand-blue-light overflow-x-auto no-scrollbar">
         <div className="max-w-7xl mx-auto flex px-6">
@@ -370,7 +364,6 @@ const SimulacioGrupsPage: React.FC = () => {
 
       <main className="flex-grow p-4 md:p-10 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-10">
-          {/* SECCIÓN PARTIDOS */}
           <section className="space-y-6">
             <h2 className="text-2xl font-black uppercase">Partidos Grupo {activeGroupId}</h2>
             <div className="space-y-4">
@@ -404,7 +397,6 @@ const SimulacioGrupsPage: React.FC = () => {
             </div>
           </section>
 
-          {/* SECCIÓN CLASIFICACIÓN */}
           <section className="space-y-6">
             <h2 className="text-2xl font-black uppercase">Clasificación Grupo {activeGroupId}</h2>
             <div className="bg-brand-blue-mid border border-brand-blue-light rounded-2xl overflow-hidden shadow-2xl">
@@ -487,7 +479,6 @@ const SimulacioGrupsPage: React.FC = () => {
                 </table>
               </div>
 
-              {/* LEYENDA DETALLADA (TUVERSIÓN) */}
               <div className="p-6 bg-brand-blue-deep/50 border-t border-brand-blue-light">
                 <div className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-brand-orange shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -511,11 +502,11 @@ const SimulacioGrupsPage: React.FC = () => {
           </section>
         </div>
       </main>
+
       <footer className="p-6 text-center text-[10px] text-brand-text-dim uppercase tracking-[0.2em] font-bold">
         Porra Pro © 2026
       </footer>
 
-      {/* EL MODAL DEBE IR AQUÍ: Antes del último paréntesis del return */}
       {showTieWarning && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-blue-deep/90 backdrop-blur-md">
           <div className="bg-brand-blue-mid border-2 border-brand-orange/50 p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(255,165,0,0.2)] animate-in fade-in zoom-in duration-200">
@@ -527,7 +518,7 @@ const SimulacioGrupsPage: React.FC = () => {
             
             <h3 className="text-xl font-black uppercase italic text-center mb-2 text-white">Equipos Empatados</h3>
             <p className="text-sm text-brand-text-dim text-center mb-8 leading-relaxed">
-              Hay grupos donde el orden es **aleatorio** por empate total. ¿Quieres revisarlos usando el Fair Play (arrastrar equipos) o prefieres continuar?
+              Hay grupos donde el orden es <strong>aleatorio</strong> por empate total. ¿Quieres revisarlos usando el Fair Play (arrastrar equipos) o prefieres continuar?
             </p>
 
             <div className="space-y-3">
@@ -552,8 +543,8 @@ const SimulacioGrupsPage: React.FC = () => {
           </div>
         </div>
       )}
-    </div> // Este cierra el primer <div className="min-h-screen...
-  ); // Este cierra el return (
-}; // Este cierra el componente const SimulacioGrupsPage...
+    </div>
+  );
+};
 
 export default SimulacioGrupsPage;
